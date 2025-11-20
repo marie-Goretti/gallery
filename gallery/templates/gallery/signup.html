@@ -1,0 +1,125 @@
+{% extends 'gallery/base_auth.html' %}
+{% load static %}
+
+{% block title %}Inscription - Gallery{% endblock %}
+
+{% block content %}
+<div class="card shadow-lg">
+    <div class="card-body">
+        <h2 class="text-center mb-4">
+            <i class="bi bi-person-plus" style="color: #E45B11;"></i>
+            Inscription
+        </h2>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.username.id_for_label }}" class="form-label">Nom d'utilisateur</label>
+                        <input type="text" name="username" id="{{ form.username.id_for_label }}" class="form-control" placeholder="Votre nom d'utilisateur" required autofocus>
+                        {% if form.username.errors %}
+                            <div class="text-danger small mt-1">{{ form.username.errors }}</div>
+                        {% endif %}
+                        <div class="form-text">Lettres, chiffres et @/./+/-/_ uniquement.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
+                        <input type="email" name="email" id="{{ form.email.id_for_label }}" class="form-control" placeholder="votre@email.com">
+                        {% if form.email.errors %}
+                            <div class="text-danger small mt-1">{{ form.email.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.password1.id_for_label }}" class="form-label">Mot de passe</label>
+                        <input type="password" name="password1" id="{{ form.password1.id_for_label }}" class="form-control" placeholder="Votre mot de passe" required>
+                        {% if form.password1.errors %}
+                            <div class="text-danger small mt-1">{{ form.password1.errors }}</div>
+                        {% endif %}
+                        
+                        <!-- Checklist Bootstrap -->
+                        <div class="mt-2 p-3 border rounded bg-light">
+                            <small class="text-muted d-block mb-2"><strong>Votre mot de passe doit contenir :</strong></small>
+                            <p id="len" class="mb-1 small"><i class="bi bi-x-circle text-danger"></i> Minimum 8 caractères</p>
+                            <p id="upper" class="mb-1 small"><i class="bi bi-x-circle text-danger"></i> Une majuscule</p>
+                            <p id="lower" class="mb-1 small"><i class="bi bi-x-circle text-danger"></i> Une minuscule</p>
+                            <p id="digit" class="mb-1 small"><i class="bi bi-x-circle text-danger"></i> Un chiffre</p>
+                            <p id="special" class="mb-0 small"><i class="bi bi-x-circle text-danger"></i> Un caractère spécial</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.password2.id_for_label }}" class="form-label">Confirmer le mot de passe</label>
+                        <input type="password" name="password2" id="{{ form.password2.id_for_label }}" class="form-control" placeholder="Confirmez votre mot de passe" required>
+                        {% if form.password2.errors %}
+                            <div class="text-danger small mt-1">{{ form.password2.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Vérification de sécurité</label>
+                        {{ form.captcha }}
+                        {% if form.captcha.errors %}
+                            <div class="text-danger small mt-1">{{ form.captcha.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100" style="background-color: #E45B11; border-color: #E45B11;">
+                        <i class="bi bi-person-plus"></i> Créer mon compte
+                    </button>
+                </form>
+                
+                <hr class="my-4">
+                
+                <p class="text-center mb-0">
+                    Déjà un compte ? 
+                    <a href="{% url 'login' %}" style="color: #E45B11;">Connectez-vous</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Script vérification instantanée du mot de passe
+    const pwdField = document.getElementById("id_password1");
+
+    pwdField.addEventListener("input", function () {
+        const val = pwdField.value;
+
+        document.getElementById("len").innerHTML =
+            (val.length >= 8 
+                ? '<i class="bi bi-check-circle text-success"></i> Minimum 8 caractères' 
+                : '<i class="bi bi-x-circle text-danger"></i> Minimum 8 caractères');
+
+        document.getElementById("upper").innerHTML =
+            (/[A-Z]/.test(val) 
+                ? '<i class="bi bi-check-circle text-success"></i> Une majuscule' 
+                : '<i class="bi bi-x-circle text-danger"></i> Une majuscule');
+
+        document.getElementById("lower").innerHTML =
+            (/[a-z]/.test(val) 
+                ? '<i class="bi bi-check-circle text-success"></i> Une minuscule' 
+                : '<i class="bi bi-x-circle text-danger"></i> Une minuscule');
+
+        document.getElementById("digit").innerHTML =
+            (/[0-9]/.test(val) 
+                ? '<i class="bi bi-check-circle text-success"></i> Un chiffre' 
+                : '<i class="bi bi-x-circle text-danger"></i> Un chiffre');
+
+        document.getElementById("special").innerHTML =
+            (/[^A-Za-z0-9]/.test(val) 
+                ? '<i class="bi bi-check-circle text-success"></i> Un caractère spécial' 
+                : '<i class="bi bi-x-circle text-danger"></i> Un caractère spécial');
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends 'gallery/base.html' %}
+{% load static %}
+
+{% block title %}Publier une image - Gallery{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-body p-4">
+                <h2 class="text-center mb-4">
+                    <i class="bi bi-cloud-upload" style="color: #E45B11;"></i>
+                    Publier une image
+                </h2>
+                
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.title.id_for_label }}" class="form-label">Titre</label>
+                        <input type="text" name="title" id="{{ form.title.id_for_label }}" class="form-control" placeholder="Titre de votre image" required>
+                        {% if form.title.errors %}
+                            <div class="text-danger small">{{ form.title.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                        <textarea name="description" id="{{ form.description.id_for_label }}" class="form-control" rows="4" placeholder="Description (optionnel)"></textarea>
+                        {% if form.description.errors %}
+                            <div class="text-danger small">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.category.id_for_label }}" class="form-label">Catégorie</label>
+                        <select name="category" id="{{ form.category.id_for_label }}" class="form-select">
+                            <option value="">Choisir une catégorie...</option>
+                            {% for category in form.fields.category.queryset %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if form.category.errors %}
+                            <div class="text-danger small">{{ form.category.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.image.id_for_label }}" class="form-label">Image</label>
+                        <input type="file" name="image" id="{{ form.image.id_for_label }}" class="form-control" accept="image/*" required>
+                        <div class="form-text">Formats acceptés : JPG, PNG, GIF, WEBP (max 5 MB)</div>
+                        {% if form.image.errors %}
+                            <div class="text-danger small">{{ form.image.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Prévisualisation de l'image -->
+                    <div class="mb-3" id="imagePreviewContainer" style="display: none;">
+                        <div class="text-center">
+                            <img id="imagePreview" src="" alt="Prévisualisation" class="img-fluid rounded shadow-sm" style="max-height: 300px;">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100" style="background-color: #E45B11; border-color: #E45B11;">
+                        <i class="bi bi-upload"></i> Publier l'image
+                    </button>
+                </form>
+                
+                <hr class="my-4">
+                
+                <p class="text-center mb-0">
+                    <a href="{% url 'index' %}" style="color: #E45B11;">
+                        <i class="bi bi-arrow-left"></i> Retour à la galerie
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Prévisualisation de l'image lors de la sélection
+    document.getElementById('{{ form.image.id_for_label }}').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        
+        if (file) {
+            // Vérifier la taille du fichier (5 MB max)
+            const maxSize = 5 * 1024 * 1024; // 5 MB en octets
+            if (file.size > maxSize) {
+                alert('Le fichier est trop lourd. La taille maximale est de 5 MB.');
+                e.target.value = ''; // Réinitialiser l'input
+                document.getElementById('imagePreviewContainer').style.display = 'none';
+                return;
+            }
+            
+            // Vérifier le type de fichier
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!validTypes.includes(file.type)) {
+                alert('Format de fichier non supporté. Utilisez JPG, PNG, GIF ou WEBP.');
+                e.target.value = '';
+                document.getElementById('imagePreviewContainer').style.display = 'none';
+                return;
+            }
+            
+            // Afficher la prévisualisation
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                document.getElementById('imagePreview').src = event.target.result;
+                document.getElementById('imagePreviewContainer').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            document.getElementById('imagePreviewContainer').style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}
