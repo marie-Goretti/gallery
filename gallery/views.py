@@ -7,6 +7,8 @@ from .forms import SignUpForm
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from .forms import ImageUploadForm
+from django.http import JsonResponse
+from .models import Image, Category, Tag
 
 def index(request):
     q = request.GET.get("q")
@@ -64,14 +66,40 @@ def category_view(request, slug):
 
 
 @login_required
+def get_tags_by_category(request):
+    """API pour récupérer les tags d'une catégorie"""
+    category_id = request.GET.get('category_id')
+    search = request.GET.get('search', '')
+    
+    if not category_id:
+        return JsonResponse({'tags': []})
+    
+    tags = Tag.objects.filter(category_id=category_id)
+    
+    if search:
+        tags = tags.filter(name__icontains=search)
+    
+    tags_list = [{'id': tag.id, 'name': tag.name} for tag in tags[:10]]
+    return JsonResponse({'tags': tags_list})
+
+
+@login_required
 def upload_image(request):
     if request.method == "POST":
         form = ImageUploadForm(request.POST, request.FILES)
         if form.is_valid():
             img = form.save(commit=False)
-            img.author = request.user  # l'utilisateur connecté devient l'auteur
+            img.author = request.user
             img.save()
-            return redirect('index')  
+            
+            # Récupérer les tags sélectionnés (IDs séparés par des virgules)
+            tags_ids = request.POST.get('tags_ids', '')
+            if tags_ids:
+                tag_ids_list = [int(tid) for tid in tags_ids.split(',') if tid.strip().isdigit()]
+                img.tags.set(tag_ids_list)
+            
+            messages.success(request, 'Image publiée avec succès !')
+            return redirect('index')
     else:
         form = ImageUploadForm()
 

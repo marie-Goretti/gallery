@@ -41,6 +41,23 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
+class Tag(models.Model):
+    name = models.CharField(max_length=50)
+    slug = models.SlugField(max_length=80, blank=True)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="tags")
+
+    class Meta:
+        unique_together = ['name', 'category']  # Un tag unique par catégorie
+        ordering = ['name']
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.name} ({self.category.name})"
+    
 class AuthorProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     bio = models.TextField(blank=True)
@@ -70,6 +87,7 @@ class Image(models.Model):
     description = models.TextField(blank=True)
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="images")
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="images")
+    tags = models.ManyToManyField(Tag, blank=True, related_name="images")  # NOUVEAU
 
     image = models.ImageField(upload_to=image_upload_path, validators=[validate_image_file_extension, validate_image_size])
 

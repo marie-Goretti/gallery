@@ -13,7 +13,7 @@
                     Publier une image
                 </h2>
                 
-                <form method="POST" enctype="multipart/form-data">
+                <form method="POST" enctype="multipart/form-data" id="uploadForm">
                     {% csrf_token %}
                     
                     <div class="mb-3">
@@ -34,7 +34,7 @@
                     
                     <div class="mb-3">
                         <label for="{{ form.category.id_for_label }}" class="form-label">Catégorie</label>
-                        <select name="category" id="{{ form.category.id_for_label }}" class="form-select">
+                        <select name="category" id="{{ form.category.id_for_label }}" class="form-select" required>
                             <option value="">Choisir une catégorie...</option>
                             {% for category in form.fields.category.queryset %}
                                 <option value="{{ category.id }}">{{ category.name }}</option>
@@ -43,6 +43,23 @@
                         {% if form.category.errors %}
                             <div class="text-danger small">{{ form.category.errors }}</div>
                         {% endif %}
+                    </div>
+                    
+                    <!-- Nouveau champ Tags -->
+                    <div class="mb-3">
+                        <label for="tags-input" class="form-label">Tags</label>
+                        <div class="position-relative">
+                            <input type="text" id="tags-input" class="form-control" placeholder="Tapez pour rechercher des tags..." autocomplete="off">
+                            <input type="hidden" name="tags_ids" id="tags-ids">
+                            
+                            <!-- Liste déroulante des tags -->
+                            <ul id="tags-dropdown" class="list-group position-absolute w-100" style="display: none; max-height: 200px; overflow-y: auto; z-index: 1000;"></ul>
+                        </div>
+                        
+                        <!-- Tags sélectionnés -->
+                        <div id="selected-tags" class="mt-2"></div>
+                        
+                        <div class="form-text">Sélectionnez d'abord une catégorie pour voir les tags disponibles</div>
                     </div>
                     
                     <div class="mb-3">
@@ -81,16 +98,159 @@
 
 {% block extra_js %}
 <script>
+    // Variables globales
+    let selectedTags = [];
+    let availableTags = [];
+    
+    const categorySelect = document.getElementById('{{ form.category.id_for_label }}');
+    const tagsInput = document.getElementById('tags-input');
+    const tagsDropdown = document.getElementById('tags-dropdown');
+    const selectedTagsContainer = document.getElementById('selected-tags');
+    const tagsIdsInput = document.getElementById('tags-ids');
+    
+    // Désactiver le champ tags si aucune catégorie n'est sélectionnée
+    tagsInput.disabled = true;
+    
+    // Charger les tags quand une catégorie est sélectionnée
+    categorySelect.addEventListener('change', function() {
+        const categoryId = this.value;
+        selectedTags = [];
+        updateSelectedTagsDisplay();
+        
+        if (!categoryId) {
+            tagsInput.disabled = true;
+            tagsInput.placeholder = 'Sélectionnez d\'abord une catégorie...';
+            availableTags = [];
+            return;
+        }
+        
+        tagsInput.disabled = false;
+        tagsInput.placeholder = 'Tapez pour rechercher des tags...';
+        
+        // Charger tous les tags de la catégorie
+        fetch(`{% url 'get_tags_by_category' %}?category_id=${categoryId}`)
+            .then(response => response.json())
+            .then(data => {
+                availableTags = data.tags;
+            })
+            .catch(error => {
+                console.error('Erreur lors du chargement des tags:', error);
+            });
+    });
+    
+    // Afficher/masquer la liste déroulante
+    tagsInput.addEventListener('focus', function() {
+        if (availableTags.length > 0) {
+            showDropdown(availableTags);
+        }
+    });
+    
+    // Recherche dans les tags
+    tagsInput.addEventListener('input', function() {
+        const search = this.value.toLowerCase().trim();
+        
+        if (!search) {
+            showDropdown(availableTags);
+            return;
+        }
+        
+        const filtered = availableTags.filter(tag => 
+            tag.name.toLowerCase().includes(search) && 
+            !selectedTags.some(st => st.id === tag.id)
+        );
+        
+        showDropdown(filtered);
+    });
+    
+    // Fermer la liste déroulante quand on clique ailleurs
+    document.addEventListener('click', function(e) {
+        if (!tagsInput.contains(e.target) && !tagsDropdown.contains(e.target)) {
+            tagsDropdown.style.display = 'none';
+        }
+    });
+    
+    // Afficher la liste déroulante
+    function showDropdown(tags) {
+        tagsDropdown.innerHTML = '';
+        
+        const filteredTags = tags.filter(tag => !selectedTags.some(st => st.id === tag.id));
+        
+        if (filteredTags.length === 0) {
+            tagsDropdown.style.display = 'none';
+            return;
+        }
+        
+        filteredTags.forEach(tag => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item list-group-item-action';
+            li.style.cursor = 'pointer';
+            li.textContent = tag.name;
+            
+            li.addEventListener('click', function() {
+                addTag(tag);
+                tagsInput.value = '';
+                tagsDropdown.style.display = 'none';
+            });
+            
+            tagsDropdown.appendChild(li);
+        });
+        
+        tagsDropdown.style.display = 'block';
+    }
+    
+    // Ajouter un tag
+    function addTag(tag) {
+        if (selectedTags.some(st => st.id === tag.id)) {
+            return;
+        }
+        
+        selectedTags.push(tag);
+        updateSelectedTagsDisplay();
+    }
+    
+    // Supprimer un tag
+    function removeTag(tagId) {
+        selectedTags = selectedTags.filter(tag => tag.id !== tagId);
+        updateSelectedTagsDisplay();
+    }
+    
+    // Mettre à jour l'affichage des tags sélectionnés
+    function updateSelectedTagsDisplay() {
+        selectedTagsContainer.innerHTML = '';
+        
+        if (selectedTags.length === 0) {
+            tagsIdsInput.value = '';
+            return;
+        }
+        
+        selectedTags.forEach(tag => {
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-secondary me-2 mb-2';
+            badge.style.fontSize = '0.9rem';
+            badge.innerHTML = `
+                ${tag.name}
+                <i class="bi bi-x-circle ms-1" style="cursor: pointer;" onclick="removeTag(${tag.id})"></i>
+            `;
+            selectedTagsContainer.appendChild(badge);
+        });
+        
+        // Mettre à jour l'input caché avec les IDs
+        tagsIdsInput.value = selectedTags.map(tag => tag.id).join(',');
+    }
+    
+    // Rendre removeTag accessible globalement
+    window.removeTag = removeTag;
+    
     // Prévisualisation de l'image lors de la sélection
     document.getElementById('{{ form.image.id_for_label }}').addEventListener('change', function(e) {
         const file = e.target.files[0];
         
         if (file) {
             // Vérifier la taille du fichier (5 MB max)
-            const maxSize = 5 * 1024 * 1024; // 5 MB en octets
+            const maxSize = 5 * 1024 * 1024;
             if (file.size > maxSize) {
                 alert('Le fichier est trop lourd. La taille maximale est de 5 MB.');
-                e.target.value = ''; // Réinitialiser l'input
+                e.target.value = '';
                 document.getElementById('imagePreviewContainer').style.display = 'none';
                 return;
             }

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, AuthorProfile, Image
+from .models import Category,Tag, AuthorProfile, Image
 
 
 
@@ -9,6 +9,12 @@ class CategoryAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("name",)}
     search_fields = ("name",)
 
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    list_display = ['name', 'category', 'slug']
+    list_filter = ['category']
+    search_fields = ['name']
+    prepopulated_fields = {'slug': ('name',)}
 
 @admin.register(AuthorProfile)
 class AuthorProfileAdmin(admin.ModelAdmin):

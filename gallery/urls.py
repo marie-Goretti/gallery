@@ -10,4 +10,5 @@ urlpatterns = [
     path('publier/', views.upload_image, name='upload_image'),
     path('logout/', views.logout_view, name='logout'),
     path('login/', login_view, name='login'),
+    path('api/tags/', views.get_tags_by_category, name='get_tags_by_category'),
 ]

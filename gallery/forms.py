@@ -7,6 +7,8 @@ from django.contrib.auth.forms import UserCreationForm
 from django_recaptcha.fields import ReCaptchaField
 from django_recaptcha.widgets import ReCaptchaV2Checkbox
 from .models import Image, Category
+from django import forms
+from .models import Image, Tag, Category
 
 class SignUpForm(UserCreationForm):
     email = forms.EmailField(required=True)
@@ -33,7 +35,25 @@ class SignUpForm(UserCreationForm):
 
         return password
     
+
 class ImageUploadForm(forms.ModelForm):
+    category = forms.ModelChoiceField(
+        queryset=Category.objects.all(),
+        required=True,
+        empty_label="Choisir une catégorie...",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+    tags = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Tapez pour rechercher des tags...',
+            'id': 'tags-input'
+        }),
+        help_text='Sélectionnez des tags correspondant à votre image'
+    )
+
     class Meta:
         model = Image
         fields = ['title', 'description', 'category', 'image']
