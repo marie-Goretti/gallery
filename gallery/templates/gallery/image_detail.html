@@ -1,0 +1,711 @@
+{% extends 'gallery/base.html' %}
+{% load static %}
+
+{% block title %}{{ image.title }} - Gallery{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Masquer navbar et footer */
+    nav, footer {
+        display: none !important;
+    }
+
+    /* Ajuster le body */
+    body {
+        padding-top: 0 !important;
+        margin: 0;
+    }
+
+    .detail-container {
+        display: flex;
+        gap: 8px;
+        padding: 16px;
+        max-width: 1800px;
+        margin: 0 auto;
+        min-height: 100vh;
+    }
+
+    /* Image principale */
+    .main-section {
+        flex: 0 0 45%;
+        max-width: 45%;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .main-image-wrapper {
+        position: relative;
+        background: #000;
+        border-radius: 32px;
+        overflow: hidden;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .main-image-wrapper img {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    /* Stats sur l'image */
+    .image-stats {
+        position: absolute;
+        bottom: 24px;
+        left: 24px;
+        display: flex;
+        gap: 12px;
+        z-index: 10;
+    }
+
+    .stat-item {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 10px 18px;
+        border-radius: 30px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        font-size: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transition: all 0.3s ease;
+    }
+
+    .stat-item i {
+        font-size: 1.3rem;
+    }
+
+    .stat-item.likeable {
+        cursor: pointer;
+    }
+
+    .stat-item.likeable:hover {
+        transform: scale(1.08);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .stat-item.liked i {
+        color: #E45B11;
+    }
+
+    /* Détails sous l'image */
+    .details-card {
+        background: #fff;
+        border-radius: 24px;
+        padding: 24px;
+    }
+
+    .details-card h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 16px;
+    }
+
+    .author-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .author-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .author-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: #f0f0f0;
+        color: #E45B11;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+
+    /* Tags */
+    .tags-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .tag-badge {
+        background: #E45B11;
+        color: white;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    /* Actions - Boutons ronds */
+    .action-buttons {
+        display: flex;
+        gap: 12px;
+        margin-top: 16px;
+    }
+
+    .action-btn {
+        width: 50px;
+        height: 50px;
+        padding: 0;
+        border: none;
+        background: #E45B11;
+        color: white;
+        border-radius: 50%;
+        font-weight: 700;
+        font-size: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        position: relative;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-2px) scale(1.1);
+        box-shadow: 0 6px 20px rgba(228, 91, 17, 0.4);
+        background: #d14f0f;
+        color: white;
+    }
+
+    .action-btn.secondary {
+        background: #f0f0f0;
+        color: #333;
+    }
+
+    .action-btn.secondary:hover {
+        background: #e0e0e0;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        color: #333;
+    }
+
+    .action-btn i {
+        font-size: 22px;
+    }
+
+    /* Badge pour le compteur de commentaires */
+    .comment-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #E45B11;
+        color: white;
+        font-size: 11px;
+        font-weight: 700;
+        min-width: 20px;
+        height: 20px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 5px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Section similaires à droite */
+    .similar-section {
+        flex: 0 0 53%;
+        max-width: 53%;
+        overflow-y: auto;
+        max-height: 100vh;
+        padding-bottom: 100px;
+    }
+
+    .similar-section::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .similar-section::-webkit-scrollbar-track {
+        background: #2a2a2a;
+        border-radius: 10px;
+    }
+
+    .similar-section::-webkit-scrollbar-thumb {
+        background: #444;
+        border-radius: 10px;
+    }
+
+    .similar-section::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    .similar-header {
+        color: #E45B11;
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 16px;
+        padding: 0 8px;
+    }
+
+    .similar-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .similar-item {
+        border-radius: 16px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .similar-item:hover {
+        transform: translateY(-4px);
+    }
+
+    .similar-item img {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    /* Section commentaires */
+    .comments-section {
+        background: white;
+        border-radius: 24px;
+        padding: 24px;
+        margin-top: 16px;
+    }
+
+    .comment-item {
+        padding: 16px 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .comment-item:last-child {
+        border-bottom: none;
+    }
+
+    /* Bouton retour */
+    .back-button {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        width: 50px;
+        height: 50px;
+        background: rgba(255, 255, 255, 0.95);
+        border: none;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 1000;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .back-button:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .back-button i {
+        font-size: 24px;
+        color: #333;
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+        .main-section {
+            flex: 0 0 40%;
+            max-width: 40%;
+        }
+        .main-image-wrapper {
+            max-width: 500px;
+        }
+        .similar-section {
+            flex: 0 0 58%;
+            max-width: 58%;
+        }
+    }
+
+    @media (max-width: 992px) {
+        .detail-container {
+            flex-direction: column;
+        }
+        .main-section, .similar-section {
+            flex: 1;
+            max-width: 100%;
+        }
+        .similar-section {
+            max-height: none;
+            overflow-y: visible;
+        }
+        .similar-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .similar-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 576px) {
+        .detail-container {
+            padding: 8px;
+        }
+        .image-stats {
+            bottom: 12px;
+            left: 12px;
+            gap: 8px;
+        }
+        .stat-item {
+            padding: 8px 14px;
+            font-size: 14px;
+        }
+        .action-btn {
+            width: 45px;
+            height: 45px;
+        }
+        .action-btn i {
+            font-size: 20px;
+        }
+        .back-button {
+            width: 45px;
+            height: 45px;
+            top: 15px;
+            left: 15px;
+        }
+        .back-button i {
+            font-size: 20px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Bouton retour -->
+<button class="back-button" onclick="window.history.back()" title="Retour">
+    <i class="bi bi-arrow-left"></i>
+</button>
+
+<div class="detail-container">
+    <!-- Section principale - Image et détails -->
+    <div class="main-section">
+        <!-- Image principale -->
+        <div class="main-image-wrapper">
+            <img src="{{ image.image.url }}" alt="{{ image.title }}">
+            
+            <!-- Stats sur l'image -->
+            <div class="image-stats">
+                <!-- Like -->
+                <div class="stat-item {% if user.is_authenticated %}likeable{% endif %} {% if is_liked %}liked{% endif %}" 
+                     id="like-stat" 
+                     {% if user.is_authenticated %}onclick="toggleLike()"{% endif %}
+                     title="{% if not user.is_authenticated %}Connectez-vous pour aimer{% endif %}">
+                    <i class="bi {% if is_liked %}bi-heart-fill{% else %}bi-heart{% endif %}" id="like-icon"></i>
+                    <span id="likes-count">{{ likes_count }}</span>
+                </div>
+                
+                <!-- Vues -->
+                <div class="stat-item">
+                    <i class="bi bi-eye-fill" style="color: #6c757d;"></i>
+                    <span>{{ views_count }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Détails -->
+        <div class="details-card">
+            <h1>{{ image.title }}</h1>
+            
+            <!-- Auteur -->
+            <div class="author-info">
+                {% if image.author.profile.avatar %}
+                    <img src="{{ image.author.profile.avatar.url }}" 
+                         alt="{{ image.author.username }}" 
+                         class="author-avatar">
+                {% else %}
+                    <div class="author-icon">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                {% endif %}
+                <div>
+                    <strong style="font-size: 1rem;">{{ image.author.username }}</strong><br>
+                    <small class="text-muted">{{ image.created_at|date:"d/m/Y" }}</small>
+                </div>
+            </div>
+            
+            <!-- Description -->
+            {% if image.description %}
+            <p class="text-muted" style="line-height: 1.6;">{{ image.description }}</p>
+            {% endif %}
+
+            <!-- Tags -->
+            {% if image.tags.all %}
+            <div class="tags-container">
+                {% for tag in image.tags.all %}
+                    <span class="tag-badge">{{ tag.name }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Infos techniques -->
+            <div class="text-muted small mb-3">
+                {% if image.width and image.height %}
+                <span class="me-3"><i class="bi bi-aspect-ratio me-1"></i>{{ image.width }} × {{ image.height }}px</span>
+                {% endif %}
+                {% if image.file_size %}
+                <span class="me-3"><i class="bi bi-file-earmark me-1"></i>{{ image.file_size|filesizeformat }}</span>
+                {% endif %}
+                {% if image.category %}
+                <span><i class="bi bi-tag me-1"></i>{{ image.category.name }}</span>
+                {% endif %}
+            </div>
+
+            <!-- Actions - Boutons ronds -->
+            <div class="action-buttons">
+                <button class="action-btn" data-bs-toggle="collapse" data-bs-target="#commentsSection" title="Commentaires">
+                    <i class="bi bi-chat-dots"></i>
+                    {% if comments_count > 0 %}
+                    <span class="comment-badge" id="comments-count">{{ comments_count }}</span>
+                    {% endif %}
+                </button>
+                
+                <a href="{{ image.image.url }}" download="{{ image.title }}" class="action-btn secondary" title="Télécharger">
+                    <i class="bi bi-download"></i>
+                </a>
+                
+                <button class="action-btn secondary" id="copy-link-btn" title="Copier le lien">
+                    <i class="bi bi-link-45deg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Section Commentaires -->
+        <div class="collapse" id="commentsSection">
+            <div class="comments-section">
+                <h5 class="mb-4">
+                    <i class="bi bi-chat-dots me-2" style="color: #E45B11;"></i>
+                    Commentaires
+                </h5>
+                
+                {% if user.is_authenticated %}
+                <form id="comment-form" class="mb-4">
+                    {% csrf_token %}
+                    <textarea class="form-control mb-3" name="comment-content" id="comment-content" rows="3" 
+                              placeholder="Ajouter un commentaire..." required></textarea>
+                    <button type="submit" class="btn btn-primary" 
+                            style="background-color: #E45B11; border-color: #E45B11;">
+                        <i class="bi bi-send"></i> Publier
+                    </button>
+                </form>
+                {% else %}
+                <div class="alert alert-info">
+                    <a href="{% url 'login' %}?next={{ request.path }}" style="color: #E45B11;">Connectez-vous</a> pour commenter
+                </div>
+                {% endif %}
+                
+                <div id="comments-list">
+                    {% for comment in comments %}
+                    <div class="comment-item" data-comment-id="{{ comment.id }}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>{{ comment.author.username }}</strong>
+                                <small class="text-muted ms-2">{{ comment.created_at|date:"d/m/Y à H:i" }}</small>
+                            </div>
+                            {% if user == comment.author %}
+                            <button class="btn btn-sm btn-outline-danger delete-comment-btn" 
+                                    data-comment-id="{{ comment.id }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                        <p class="mt-2 mb-0">{{ comment.content }}</p>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted" id="no-comments">Aucun commentaire. Soyez le premier !</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Section similaires à droite -->
+    <div class="similar-section">
+        {% if similar_images %}
+        <h5 class="similar-header">Plus d'idées</h5>
+        
+        <div class="similar-grid">
+            {% for similar in similar_images %}
+            <a href="{% url 'image_detail' similar.slug %}" class="similar-item">
+                <img src="{{ similar.image.url }}" alt="{{ similar.title }}" loading="lazy">
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleLike() {
+    {% if not user.is_authenticated %}
+    alert('Veuillez vous connecter pour aimer cette image.');
+    return;
+    {% endif %}
+    
+    fetch("{% url 'toggle_like' image.slug %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const icon = document.getElementById('like-icon');
+        const count = document.getElementById('likes-count');
+        const stat = document.getElementById('like-stat');
+        
+        if (data.liked) {
+            icon.classList.remove('bi-heart');
+            icon.classList.add('bi-heart-fill');
+            stat.classList.add('liked');
+        } else {
+            icon.classList.remove('bi-heart-fill');
+            icon.classList.add('bi-heart');
+            stat.classList.remove('liked');
+        }
+        
+        count.textContent = data.likes_count;
+        
+        stat.style.transform = 'scale(1.2)';
+        setTimeout(() => { stat.style.transform = 'scale(1)'; }, 200);
+    })
+    .catch(error => console.error('Erreur:', error));
+}
+
+document.getElementById('copy-link-btn').addEventListener('click', function() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+        const btn = this;
+        const icon = btn.querySelector('i');
+        icon.className = 'bi bi-check';
+        setTimeout(() => { icon.className = 'bi bi-link-45deg'; }, 2000);
+    });
+});
+
+document.getElementById('comment-form')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    console.log('Formulaire soumis');
+    
+    const content = document.getElementById('comment-content').value.trim();
+    if (!content) {
+        alert('Le commentaire ne peut pas être vide');
+        return;
+    }
+    
+    const formData = new FormData(this);
+    console.log('Contenu:', content);
+    console.log('URL:', "{% url 'add_comment' image.slug %}");
+    
+    fetch("{% url 'add_comment' image.slug %}", {
+        method: 'POST',
+        headers: { 
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: formData
+    })
+    .then(response => {
+        console.log('Réponse reçue:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Données:', data);
+        if (data.success) {
+            const noComments = document.getElementById('no-comments');
+            if (noComments) noComments.remove();
+            
+            const commentsList = document.getElementById('comments-list');
+            commentsList.insertAdjacentHTML('afterbegin', `
+                <div class="comment-item" data-comment-id="${data.comment.id}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>${data.comment.author}</strong>
+                            <small class="text-muted ms-2">${data.comment.created_at}</small>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger delete-comment-btn" data-comment-id="${data.comment.id}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                    <p class="mt-2 mb-0">${data.comment.content}</p>
+                </div>
+            `);
+            
+            // Mettre à jour le compteur de commentaires
+            const badge = document.getElementById('comments-count');
+            if (badge) {
+                badge.textContent = parseInt(badge.textContent) + 1;
+            } else {
+                // Créer le badge s'il n'existe pas
+                const commentBtn = document.querySelector('[data-bs-target="#commentsSection"]');
+                commentBtn.insertAdjacentHTML('beforeend', '<span class="comment-badge" id="comments-count">1</span>');
+            }
+            
+            document.getElementById('comment-content').value = '';
+            attachDeleteEvents();
+        } else {
+            alert('Erreur: ' + (data.error || 'Impossible d\'ajouter le commentaire'));
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Une erreur est survenue. Vérifiez la console.');
+    });
+});
+
+function attachDeleteEvents() {
+    document.querySelectorAll('.delete-comment-btn').forEach(btn => {
+        btn.onclick = function() {
+            if (!confirm('Supprimer ce commentaire ?')) return;
+            
+            fetch(`/comment/${this.dataset.commentId}/delete/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.querySelector(`[data-comment-id="${this.dataset.commentId}"]`).remove();
+                    
+                    // Mettre à jour le compteur
+                    const badge = document.getElementById('comments-count');
+                    if (badge) {
+                        const newCount = parseInt(badge.textContent) - 1;
+                        if (newCount > 0) {
+                            badge.textContent = newCount;
+                        } else {
+                            badge.remove();
+                        }
+                    }
+                    
+                    const list = document.getElementById('comments-list');
+                    if (list.children.length === 0) {
+                        list.innerHTML = '<p class="text-muted" id="no-comments">Aucun commentaire. Soyez le premier !</p>';
+                    }
+                }
+            });
+        };
+    });
+}
+
+attachDeleteEvents();
+</script>
+{% endblock %}

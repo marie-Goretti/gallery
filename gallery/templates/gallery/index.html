@@ -88,6 +88,12 @@
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
     }
 
+    .masonry-item a {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+
     .masonry-item img {
         width: 100%;
         height: auto;
@@ -181,6 +187,24 @@
         opacity: 1;
     }
 
+    .menu-dots:hover {
+        background: #f8f9fa;
+    }
+
+    /* Stats rapides sur l'overlay */
+    .item-stats {
+        display: flex;
+        gap: 15px;
+        margin-top: 8px;
+        font-size: 12px;
+    }
+
+    .item-stat {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
     /* 📱 RESPONSIVE */
     @media (max-width: 1200px) {
         .masonry-container {
@@ -272,25 +296,43 @@
     <div class="masonry-container">
         {% for image in images %}
         <div class="masonry-item">
-            <img src="{{ image.image.url }}" 
-                 alt="{{ image.title }}" 
-                 loading="lazy">
-            <div class="item-overlay">
-                <div class="item-title">{{ image.title }}</div>
-                <div class="item-meta">
-                    {% if image.author.profile.avatar %}
-                        <img src="{{ image.author.profile.avatar.url }}" 
-                             alt="{{ image.author.username }}" 
-                             class="author-avatar">
-                    {% else %}
-                        <div class="author-icon">
-                            <i class="bi bi-person-fill"></i>
+            <a href="{% url 'image_detail' image.slug %}">
+                <img src="{{ image.image.url }}" 
+                     alt="{{ image.title }}" 
+                     loading="lazy">
+                <div class="item-overlay">
+                    <div class="item-title">{{ image.title }}</div>
+                    <div class="item-meta">
+                        {% if image.author.profile.avatar %}
+                            <img src="{{ image.author.profile.avatar.url }}" 
+                                 alt="{{ image.author.username }}" 
+                                 class="author-avatar">
+                        {% else %}
+                            <div class="author-icon">
+                                <i class="bi bi-person-fill"></i>
+                            </div>
+                        {% endif %}
+                        <span class="author-name">{{ image.author.username }}</span>
+                    </div>
+                    
+                    <!-- Stats rapides -->
+                    <div class="item-stats">
+                        <div class="item-stat">
+                            <i class="bi bi-heart-fill"></i>
+                            <span>{{ image.get_likes_count }}</span>
                         </div>
-                    {% endif %}
-                    <span class="author-name">{{ image.author.username }}</span>
+                        <div class="item-stat">
+                            <i class="bi bi-eye-fill"></i>
+                            <span>{{ image.get_views_count }}</span>
+                        </div>
+                        <div class="item-stat">
+                            <i class="bi bi-chat-dots-fill"></i>
+                            <span>{{ image.get_comments_count }}</span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="menu-dots">⋯</div>
+            </a>
+            <div class="menu-dots" onclick="event.preventDefault(); event.stopPropagation();" title="Plus d'options">⋯</div>
         </div>
         {% endfor %}
     </div>

@@ -134,3 +134,58 @@ class Image(models.Model):
 
     def __str__(self):
         return self.title
+    
+    def get_views_count(self):
+        return self.views.count()
+    
+    def get_likes_count(self):
+        return self.likes.count()
+    
+    def get_comments_count(self):
+        return self.comments.count()
+    
+    def is_liked_by(self, user):
+        if user.is_authenticated:
+            return self.likes.filter(user=user).exists()
+        return False
+
+
+
+class ImageView(models.Model):
+    """Suivi des vues d'images"""
+    image = models.ForeignKey(Image, on_delete=models.CASCADE, related_name='views')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    viewed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-viewed_at']
+
+
+class ImageLike(models.Model):
+    """Likes sur les images"""
+    image = models.ForeignKey(Image, on_delete=models.CASCADE, related_name='likes')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['image', 'user']
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} likes {self.image.title}"
+
+
+class Comment(models.Model):
+    """Commentaires sur les images"""
+    image = models.ForeignKey(Image, on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Comment by {self.author.username} on {self.image.title}"

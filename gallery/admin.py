@@ -1,7 +1,6 @@
 from django.contrib import admin
-from .models import Category,Tag, AuthorProfile, Image
-
-
+from .models import Category,Tag, AuthorProfile, Image, ImageLike, ImageView, Comment
+from django.contrib import admin
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
@@ -46,3 +45,26 @@ class ImageAdmin(admin.ModelAdmin):
             "fields": ("width", "height", "file_size", "created_at"),
         }),
     )
+
+
+@admin.register(ImageLike)
+class ImageLikeAdmin(admin.ModelAdmin):
+    list_display = ['user', 'image', 'created_at']
+    list_filter = ['created_at']
+    search_fields = ['user__username', 'image__title']
+
+@admin.register(ImageView)
+class ImageViewAdmin(admin.ModelAdmin):
+    list_display = ['image', 'user', 'ip_address', 'viewed_at']
+    list_filter = ['viewed_at']
+    search_fields = ['user__username', 'image__title', 'ip_address']
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    list_display = ['author', 'image', 'content_preview', 'created_at']
+    list_filter = ['created_at']
+    search_fields = ['author__username', 'image__title', 'content']
+    
+    def content_preview(self, obj):
+        return obj.content[:50] + '...' if len(obj.content) > 50 else obj.content
+    content_preview.short_description = 'Contenu'

@@ -11,4 +11,8 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('login/', login_view, name='login'),
     path('api/tags/', views.get_tags_by_category, name='get_tags_by_category'),
+    path('image/<slug:slug>/', views.image_detail, name='image_detail'),
+    path('image/<slug:slug>/like/', views.toggle_like, name='toggle_like'),
+    path('image/<slug:slug>/comment/', views.add_comment, name='add_comment'),
+    path('comment/<int:comment_id>/delete/', views.delete_comment, name='delete_comment'),
 ]
