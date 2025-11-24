@@ -102,11 +102,17 @@ def upload_image(request):
             img.author = request.user
             img.save()
             
-            # Récupérer les tags sélectionnés (IDs séparés par des virgules)
+            # Récupérer les tags sélectionnés
             tags_ids = request.POST.get('tags_ids', '')
             if tags_ids:
                 tag_ids_list = [int(tid) for tid in tags_ids.split(',') if tid.strip().isdigit()]
-                img.tags.set(tag_ids_list)
+                tags = Tag.objects.filter(id__in=tag_ids_list)
+                img.tags.set(tags)
+                
+                # Assigner automatiquement la catégorie basée sur le premier tag
+                if tags.exists():
+                    img.category = tags.first().category
+                    img.save(update_fields=['category'])
             
             messages.success(request, 'Image publiée avec succès !')
             return redirect('index')
