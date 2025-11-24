@@ -67,19 +67,29 @@ def category_view(request, slug):
 
 @login_required
 def get_tags_by_category(request):
-    """API pour récupérer les tags d'une catégorie"""
-    category_id = request.GET.get('category_id')
+    """API pour récupérer les tags avec recherche globale"""
     search = request.GET.get('search', '')
+    category_id = request.GET.get('category_id')
     
-    if not category_id:
-        return JsonResponse({'tags': []})
+    tags = Tag.objects.select_related('category')
     
-    tags = Tag.objects.filter(category_id=category_id)
+    # Filtrer par catégorie si spécifiée
+    if category_id:
+        tags = tags.filter(category_id=category_id)
     
+    # Filtrer par recherche
     if search:
         tags = tags.filter(name__icontains=search)
     
-    tags_list = [{'id': tag.id, 'name': tag.name} for tag in tags[:10]]
+    # Limiter à 20 résultats
+    tags = tags[:20]
+    
+    tags_list = [{
+        'id': tag.id, 
+        'name': tag.name,
+        'category': tag.category.name
+    } for tag in tags]
+    
     return JsonResponse({'tags': tags_list})
 
 

@@ -32,20 +32,7 @@
                         {% endif %}
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="{{ form.category.id_for_label }}" class="form-label">Catégorie</label>
-                        <select name="category" id="{{ form.category.id_for_label }}" class="form-select" required>
-                            <option value="">Choisir une catégorie...</option>
-                            {% for category in form.fields.category.queryset %}
-                                <option value="{{ category.id }}">{{ category.name }}</option>
-                            {% endfor %}
-                        </select>
-                        {% if form.category.errors %}
-                            <div class="text-danger small">{{ form.category.errors }}</div>
-                        {% endif %}
-                    </div>
-                    
-                    <!-- Nouveau champ Tags -->
+                    <!-- Champ Tags -->
                     <div class="mb-3">
                         <label for="tags-input" class="form-label">Tags</label>
                         <div class="position-relative">
@@ -53,13 +40,13 @@
                             <input type="hidden" name="tags_ids" id="tags-ids">
                             
                             <!-- Liste déroulante des tags -->
-                            <ul id="tags-dropdown" class="list-group position-absolute w-100" style="display: none; max-height: 200px; overflow-y: auto; z-index: 1000;"></ul>
+                            <ul id="tags-dropdown" class="list-group position-absolute w-100" style="display: none; max-height: 250px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
                         </div>
                         
                         <!-- Tags sélectionnés -->
                         <div id="selected-tags" class="mt-2"></div>
                         
-                        <div class="form-text">Sélectionnez d'abord une catégorie pour voir les tags disponibles</div>
+                        <div class="form-text">Commencez à taper pour voir les suggestions de tags</div>
                     </div>
                     
                     <div class="mb-3">
@@ -100,67 +87,50 @@
 <script>
     // Variables globales
     let selectedTags = [];
-    let availableTags = [];
+    let searchTimeout;
     
-    const categorySelect = document.getElementById('{{ form.category.id_for_label }}');
     const tagsInput = document.getElementById('tags-input');
     const tagsDropdown = document.getElementById('tags-dropdown');
     const selectedTagsContainer = document.getElementById('selected-tags');
     const tagsIdsInput = document.getElementById('tags-ids');
     
-    // Désactiver le champ tags si aucune catégorie n'est sélectionnée
-    tagsInput.disabled = true;
+    // Charger les tags populaires au focus
+    tagsInput.addEventListener('focus', function() {
+        const search = this.value.trim();
+        searchTags(search);
+    });
     
-    // Charger les tags quand une catégorie est sélectionnée
-    categorySelect.addEventListener('change', function() {
-        const categoryId = this.value;
-        selectedTags = [];
-        updateSelectedTagsDisplay();
+    // Recherche dans les tags en temps réel
+    tagsInput.addEventListener('input', function() {
+        const search = this.value.trim();
         
-        if (!categoryId) {
-            tagsInput.disabled = true;
-            tagsInput.placeholder = 'Sélectionnez d\'abord une catégorie...';
-            availableTags = [];
-            return;
+        clearTimeout(searchTimeout);
+        
+        // Recherche immédiate même avec 0 caractères
+        searchTimeout = setTimeout(() => {
+            searchTags(search);
+        }, 200);
+    });
+    
+    // Fonction pour rechercher les tags
+    function searchTags(search) {
+        let url = `{% url 'get_tags_by_category' %}`;
+        
+        if (search) {
+            url += `?search=${encodeURIComponent(search)}`;
         }
         
-        tagsInput.disabled = false;
-        tagsInput.placeholder = 'Tapez pour rechercher des tags...';
-        
-        // Charger tous les tags de la catégorie
-        fetch(`{% url 'get_tags_by_category' %}?category_id=${categoryId}`)
+        fetch(url)
             .then(response => response.json())
             .then(data => {
-                availableTags = data.tags;
+                showDropdown(data.tags, search);
             })
             .catch(error => {
                 console.error('Erreur lors du chargement des tags:', error);
+                tagsDropdown.innerHTML = '<li class="list-group-item text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Erreur de chargement</li>';
+                tagsDropdown.style.display = 'block';
             });
-    });
-    
-    // Afficher/masquer la liste déroulante
-    tagsInput.addEventListener('focus', function() {
-        if (availableTags.length > 0) {
-            showDropdown(availableTags);
-        }
-    });
-    
-    // Recherche dans les tags
-    tagsInput.addEventListener('input', function() {
-        const search = this.value.toLowerCase().trim();
-        
-        if (!search) {
-            showDropdown(availableTags);
-            return;
-        }
-        
-        const filtered = availableTags.filter(tag => 
-            tag.name.toLowerCase().includes(search) && 
-            !selectedTags.some(st => st.id === tag.id)
-        );
-        
-        showDropdown(filtered);
-    });
+    }
     
     // Fermer la liste déroulante quand on clique ailleurs
     document.addEventListener('click', function(e) {
@@ -169,27 +139,91 @@
         }
     });
     
+    // Navigation au clavier dans la liste
+    let selectedIndex = -1;
+    
+    tagsInput.addEventListener('keydown', function(e) {
+        const items = tagsDropdown.querySelectorAll('.list-group-item-action');
+        
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+            updateSelection(items);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            selectedIndex = Math.max(selectedIndex - 1, -1);
+            updateSelection(items);
+        } else if (e.key === 'Enter' && selectedIndex >= 0) {
+            e.preventDefault();
+            items[selectedIndex].click();
+        } else if (e.key === 'Escape') {
+            tagsDropdown.style.display = 'none';
+            selectedIndex = -1;
+        }
+    });
+    
+    function updateSelection(items) {
+        items.forEach((item, index) => {
+            if (index === selectedIndex) {
+                item.classList.add('active');
+                item.style.backgroundColor = '#E45B11';
+                item.style.color = 'white';
+                item.scrollIntoView({ block: 'nearest' });
+            } else {
+                item.classList.remove('active');
+                item.style.backgroundColor = '';
+                item.style.color = '';
+            }
+        });
+    }
+    
     // Afficher la liste déroulante
-    function showDropdown(tags) {
+    function showDropdown(tags, search) {
         tagsDropdown.innerHTML = '';
+        selectedIndex = -1;
         
         const filteredTags = tags.filter(tag => !selectedTags.some(st => st.id === tag.id));
         
         if (filteredTags.length === 0) {
-            tagsDropdown.style.display = 'none';
+            const message = search 
+                ? `<i class="bi bi-search me-2"></i>Aucun tag trouvé pour "${search}"`
+                : '<i class="bi bi-info-circle me-2"></i>Commencez à taper pour rechercher des tags';
+            tagsDropdown.innerHTML = `<li class="list-group-item text-muted">${message}</li>`;
+            tagsDropdown.style.display = 'block';
             return;
         }
         
-        filteredTags.forEach(tag => {
+        filteredTags.forEach((tag, index) => {
             const li = document.createElement('li');
-            li.className = 'list-group-item list-group-item-action';
+            li.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
             li.style.cursor = 'pointer';
+            
+            // Style au survol
+            li.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#E45B11';
+                this.style.color = 'white';
+            });
+            
+            li.addEventListener('mouseleave', function() {
+                if (!this.classList.contains('active')) {
+                    this.style.backgroundColor = '';
+                    this.style.color = '';
+                }
+            });
+            
             li.textContent = tag.name;
             
             li.addEventListener('click', function() {
                 addTag(tag);
                 tagsInput.value = '';
                 tagsDropdown.style.display = 'none';
+                tagsInput.focus();
+            });
+            
+            // Survol avec la souris
+            li.addEventListener('mouseenter', function() {
+                selectedIndex = index;
+                updateSelection(tagsDropdown.querySelectorAll('.list-group-item-action'));
             });
             
             tagsDropdown.appendChild(li);
@@ -225,12 +259,24 @@
         
         selectedTags.forEach(tag => {
             const badge = document.createElement('span');
-            badge.className = 'badge bg-secondary me-2 mb-2';
+            badge.className = 'badge me-2 mb-2 d-inline-flex align-items-center';
+            badge.style.backgroundColor = '#E45B11';
             badge.style.fontSize = '0.9rem';
-            badge.innerHTML = `
-                ${tag.name}
-                <i class="bi bi-x-circle ms-1" style="cursor: pointer;" onclick="removeTag(${tag.id})"></i>
-            `;
+            badge.style.padding = '0.5rem 0.75rem';
+            
+            const tagText = document.createElement('span');
+            tagText.textContent = tag.name;
+            
+            const closeBtn = document.createElement('span');
+            closeBtn.className = 'ms-2';
+            closeBtn.style.cursor = 'pointer';
+            closeBtn.innerHTML = '<i class="bi bi-x-lg"></i>';
+            closeBtn.onclick = function() {
+                removeTag(tag.id);
+            };
+            
+            badge.appendChild(tagText);
+            badge.appendChild(closeBtn);
             selectedTagsContainer.appendChild(badge);
         });
         

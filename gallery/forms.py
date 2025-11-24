@@ -39,8 +39,8 @@ class SignUpForm(UserCreationForm):
 class ImageUploadForm(forms.ModelForm):
     category = forms.ModelChoiceField(
         queryset=Category.objects.all(),
-        required=True,
-        empty_label="Choisir une catégorie...",
+        required=False,  # MODIFIÉ : Non obligatoire
+        empty_label="Choisir une catégorie (optionnel)...",
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     
@@ -51,7 +51,7 @@ class ImageUploadForm(forms.ModelForm):
             'placeholder': 'Tapez pour rechercher des tags...',
             'id': 'tags-input'
         }),
-        help_text='Sélectionnez des tags correspondant à votre image'
+        help_text='Recherchez et sélectionnez des tags correspondant à votre image'
     )
 
     class Meta:
