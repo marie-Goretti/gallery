@@ -1,0 +1,536 @@
+{% extends "gallery/base.html" %}
+{% load static %}
+
+{% block title %}Mon Profil - MyGallery{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 60px 0;
+        margin-top: -30px;
+        margin-bottom: 40px;
+    }
+
+    .profile-card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        margin-top: -80px;
+        position: relative;
+    }
+
+    .profile-avatar {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 5px solid white;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    }
+
+    .profile-avatar-placeholder {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #E45B11 0%, #ff8a50 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 60px;
+        color: white;
+        border: 5px solid white;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    }
+
+    .stat-box {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-box::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(180deg, #E45B11 0%, #ff8a50 100%);
+    }
+
+    .stat-box:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-bottom: 15px;
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin: 10px 0 5px;
+    }
+
+    .stat-label {
+        color: #718096;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .stat-growth {
+        display: flex;
+        align-items: center;
+        margin-top: 8px;
+        font-size: 0.85rem;
+    }
+
+    .growth-positive {
+        color: #48bb78;
+    }
+
+    .growth-negative {
+        color: #f56565;
+    }
+
+    .nav-pills .nav-link {
+        border-radius: 10px;
+        padding: 12px 25px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .nav-pills .nav-link.active {
+        background-color: #E45B11;
+        color: white;
+    }
+
+    .image-card {
+        position: relative;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        margin-bottom: 25px;
+    }
+
+    .image-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+    .image-card img {
+        width: 100%;
+        height: 250px;
+        object-fit: cover;
+    }
+
+    .image-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+        padding: 20px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .image-card:hover .image-overlay {
+        opacity: 1;
+    }
+
+    .image-stats {
+        display: flex;
+        gap: 15px;
+        color: white;
+        font-size: 0.9rem;
+    }
+
+    .image-actions {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-action {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.9);
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .btn-action:hover {
+        transform: scale(1.1);
+    }
+
+    .btn-edit {
+        color: #4299e1;
+    }
+
+    .btn-delete {
+        color: #f56565;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+    }
+
+    .empty-state i {
+        font-size: 80px;
+        color: #cbd5e0;
+        margin-bottom: 20px;
+    }
+
+    @media (max-width: 768px) {
+        .profile-card {
+            padding: 30px 20px;
+        }
+        
+        .stat-box {
+            margin-bottom: 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-header">
+    <div class="container">
+        <div class="profile-card">
+            <div class="row align-items-center">
+                <div class="col-md-auto text-center mb-4 mb-md-0">
+                    {% if profile.avatar %}
+                        <img src="{{ profile.avatar.url }}" alt="{{ user.username }}" class="profile-avatar">
+                    {% else %}
+                        <div class="profile-avatar-placeholder">
+                            <i class="bi bi-person"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="col-md">
+                    <h2 class="mb-2 fw-bold">{{ user.username }}</h2>
+                    <p class="text-muted mb-2">
+                        <i class="bi bi-envelope me-2"></i>{{ user.email }}
+                    </p>
+                    {% if profile.bio %}
+                        <p class="mb-3">{{ profile.bio }}</p>
+                    {% endif %}
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                        <i class="bi bi-pencil"></i> Éditer le profil
+                    </button>
+                </div>
+                <div class="col-md-auto text-center">
+                    <div class="stat-number">{{ total_images }}</div>
+                    <div class="stat-label">Images publiées</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Onglets -->
+    <ul class="nav nav-pills mb-4" id="profileTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="images-tab" data-bs-toggle="pill" 
+                    data-bs-target="#images" type="button" role="tab">
+                <i class="bi bi-images me-2"></i>Mes Images
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="stats-tab" data-bs-toggle="pill" 
+                    data-bs-target="#stats" type="button" role="tab">
+                <i class="bi bi-graph-up me-2"></i>Statistiques
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="profileTabsContent">
+        <!-- Onglet Mes Images -->
+        <div class="tab-pane fade show active" id="images" role="tabpanel">
+            {% if user_images %}
+                <div class="row">
+                    {% for image in user_images %}
+                        <div class="col-md-4 col-sm-6">
+                            <div class="image-card">
+                                <a href="{% url 'image_detail' image.slug %}">
+                                    <img src="{{ image.image.url }}" alt="{{ image.title }}">
+                                </a>
+                                
+                                <div class="image-actions">
+                                    <a href="{% url 'edit_image' image.slug %}" class="btn-action btn-edit" title="Modifier">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button type="button" class="btn-action btn-delete" 
+                                            onclick="confirmDelete('{{ image.slug }}', '{{ image.title }}')" 
+                                            title="Supprimer">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+
+                                <div class="image-overlay">
+                                    <h5 class="text-white mb-2">{{ image.title }}</h5>
+                                    <div class="image-stats">
+                                        <span><i class="bi bi-eye me-1"></i>{{ image.get_views_count }}</span>
+                                        <span><i class="bi bi-heart me-1"></i>{{ image.get_likes_count }}</span>
+                                        <span><i class="bi bi-chat me-1"></i>{{ image.get_comments_count }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-image"></i>
+                    <h3>Aucune image publiée</h3>
+                    <p class="text-muted">Commencez à partager vos créations dès maintenant !</p>
+                    <a href="{% url 'upload_image' %}" class="btn btn-primary btn-lg mt-3">
+                        <i class="bi bi-cloud-upload me-2"></i>Publier une image
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Onglet Statistiques -->
+        <div class="tab-pane fade" id="stats" role="tabpanel">
+            <h3 class="mb-4">Aperçu des statistiques (30 derniers jours)</h3>
+            
+            <div class="row g-4 mb-5">
+                <!-- Images publiées -->
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-box">
+                        <div class="stat-icon" style="background: rgba(228, 91, 17, 0.1); color: #E45B11;">
+                            <i class="bi bi-image"></i>
+                        </div>
+                        <div class="stat-number">{{ recent_images_count }}</div>
+                        <div class="stat-label">Images publiées</div>
+                        {% if images_growth != 0 %}
+                            <div class="stat-growth {% if images_growth > 0 %}growth-positive{% else %}growth-negative{% endif %}">
+                                <i class="bi bi-arrow-{% if images_growth > 0 %}up{% else %}down{% endif %} me-1"></i>
+                                {{ images_growth|floatformat:1 }}%
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Likes reçus -->
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-box">
+                        <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+                            <i class="bi bi-heart-fill"></i>
+                        </div>
+                        <div class="stat-number">{{ recent_likes|default:0 }}</div>
+                        <div class="stat-label">Likes reçus</div>
+                        {% if likes_growth != 0 %}
+                            <div class="stat-growth {% if likes_growth > 0 %}growth-positive{% else %}growth-negative{% endif %}">
+                                <i class="bi bi-arrow-{% if likes_growth > 0 %}up{% else %}down{% endif %} me-1"></i>
+                                {{ likes_growth|floatformat:1 }}%
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Commentaires -->
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-box">
+                        <div class="stat-icon" style="background: rgba(251, 191, 36, 0.1); color: #fbbf24;">
+                            <i class="bi bi-chat-fill"></i>
+                        </div>
+                        <div class="stat-number">{{ recent_comments|default:0 }}</div>
+                        <div class="stat-label">Commentaires</div>
+                    </div>
+                </div>
+
+                <!-- Vues de profil -->
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-box">
+                        <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+                            <i class="bi bi-eye-fill"></i>
+                        </div>
+                        <div class="stat-number">{{ recent_views|default:0 }}</div>
+                        <div class="stat-label">Vues</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="mb-4">Statistiques globales</h3>
+            
+            <div class="row g-4">
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-box">
+                        <div class="stat-icon" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6;">
+                            <i class="bi bi-collection"></i>
+                        </div>
+                        <div class="stat-number">{{ total_images }}</div>
+                        <div class="stat-label">Total d'images</div>
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-box">
+                        <div class="stat-icon" style="background: rgba(236, 72, 153, 0.1); color: #ec4899;">
+                            <i class="bi bi-heart-fill"></i>
+                        </div>
+                        <div class="stat-number">{{ total_likes }}</div>
+                        <div class="stat-label">Total de likes</div>
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-box">
+                        <div class="stat-icon" style="background: rgba(34, 197, 94, 0.1); color: #22c55e;">
+                            <i class="bi bi-eye-fill"></i>
+                        </div>
+                        <div class="stat-number">{{ total_views }}</div>
+                        <div class="stat-label">Total de vues</div>
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-box">
+                        <div class="stat-icon" style="background: rgba(20, 184, 166, 0.1); color: #14b8a6;">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+                        <div class="stat-number">{{ unique_likers }}</div>
+                        <div class="stat-label">Followers</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmer la suppression</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Êtes-vous sûr de vouloir supprimer l'image "<span id="imageTitle"></span>" ?
+                Cette action est irréversible.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Supprimer</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'édition du profil -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Éditer mon profil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" enctype="multipart/form-data" action="{% url 'edit_profile' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="text-center mb-4">
+                        {% if profile.avatar %}
+                            <img src="{{ profile.avatar.url }}" alt="Avatar" class="avatar-preview" id="modalAvatarPreview">
+                        {% else %}
+                            <div class="avatar-placeholder" id="modalAvatarPlaceholder" style="margin: 0 auto;">
+                                <i class="bi bi-person"></i>
+                            </div>
+                            <img src="#" alt="Avatar" class="avatar-preview" id="modalAvatarPreview" style="display: none; margin: 0 auto;">
+                        {% endif %}
+                        
+                        <div class="mt-3">
+                            <input type="file" name="avatar" id="modalAvatarInput" accept="image/*" class="d-none">
+                            <label for="modalAvatarInput" class="btn btn-outline-primary">
+                                <i class="bi bi-camera me-2"></i>Changer la photo
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Nom d'utilisateur</label>
+                        <input type="text" class="form-control" id="username" name="username" 
+                               value="{{ user.username }}" required placeholder="Votre nom d'utilisateur">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" 
+                               value="{{ user.email }}" required placeholder="votre@email.com">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="bio" class="form-label">Bio</label>
+                        <textarea class="form-control" id="bio" name="bio" rows="4" 
+                                  placeholder="Parlez-nous de vous...">{{ profile.bio }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-2"></i>Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(slug, title) {
+    document.getElementById('imageTitle').textContent = title;
+    document.getElementById('deleteForm').action = `/image/${slug}/delete/`;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+// Prévisualisation de l'avatar dans le modal
+document.getElementById('modalAvatarInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('modalAvatarPreview');
+            const placeholder = document.getElementById('modalAvatarPlaceholder');
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+            if (placeholder) {
+                placeholder.style.display = 'none';
+            }
+        }
+        reader.readAsDataURL(file);
+    }
+});
+</script>
+{% endblock %}

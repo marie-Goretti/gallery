@@ -136,13 +136,19 @@
     }
 
     /* Photo de profil dans l'overlay */
-    .author-avatar {
-        width: 28px;
-        height: 28px;
+    .item-meta .author-avatar {
+        width: 28px !important;
+        height: 28px !important;
+        min-width: 28px !important;
+        min-height: 28px !important;
+        max-width: 28px !important;
+        max-height: 28px !important;
         border-radius: 50%;
         object-fit: cover;
         border: 2px solid white;
         box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        flex-shrink: 0;
+        display: inline-block;
     }
 
     .author-icon {
@@ -162,6 +168,12 @@
 
     .author-name {
         font-weight: 500;
+    }
+
+    /* Empêcher les images dans l'overlay de devenir grandes */
+    .item-overlay img {
+        width: 28px !important;
+        height: 28px !important;
     }
 
     .menu-dots {

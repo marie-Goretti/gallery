@@ -210,7 +210,7 @@
                 </a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'index' %}">
+                <a class="nav-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" href="{% url 'profile' %}">
                   <i class="bi bi-person-circle"></i> {{ user.username }}
                 </a>
               </li>

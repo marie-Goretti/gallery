@@ -1,0 +1,222 @@
+{% extends "gallery/base.html" %}
+{% load static %}
+
+{% block title %}Modifier l'image - MyGallery{% endblock %}
+
+{% block extra_css %}
+<style>
+    .edit-image-card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        max-width: 900px;
+        margin: 50px auto;
+    }
+
+    .image-preview {
+        width: 100%;
+        max-height: 400px;
+        object-fit: contain;
+        border-radius: 15px;
+        margin-bottom: 30px;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 8px;
+    }
+
+    .form-control, .form-select {
+        border-radius: 10px;
+        border: 2px solid #e2e8f0;
+        padding: 12px 15px;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #E45B11;
+        box-shadow: 0 0 0 3px rgba(228, 91, 17, 0.1);
+    }
+
+    .tag-selection {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 15px;
+        background: #f7fafc;
+        border-radius: 10px;
+        min-height: 60px;
+    }
+
+    .tag-item {
+        background: #E45B11;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+    }
+
+    .tag-remove {
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .tag-search-results {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        margin-top: 10px;
+    }
+
+    .tag-result-item {
+        padding: 10px 15px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .tag-result-item:hover {
+        background: #f7fafc;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="edit-image-card">
+        <h2 class="text-center mb-4">Modifier l'image</h2>
+        
+        <img src="{{ image.image.url }}" alt="{{ image.title }}" class="image-preview">
+        
+        <form method="POST" enctype="multipart/form-data" id="editForm">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+                <label for="id_title" class="form-label">Titre</label>
+                {{ form.title }}
+            </div>
+
+            <div class="mb-3">
+                <label for="id_description" class="form-label">Description</label>
+                {{ form.description }}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Tags</label>
+                <input type="text" class="form-control" id="tagSearch" 
+                       placeholder="Rechercher des tags...">
+                <div id="tagSearchResults" class="tag-search-results" style="display: none;"></div>
+                
+                <div class="tag-selection mt-3" id="selectedTags">
+                    {% for tag in image.tags.all %}
+                        <span class="tag-item" data-tag-id="{{ tag.id }}">
+                            {{ tag.name }}
+                            <span class="tag-remove" onclick="removeTag({{ tag.id }})">&times;</span>
+                        </span>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="tags_ids" id="tagsInput" value="{{ image.tags.all|join:',' }}">
+            </div>
+
+            <div class="mb-4">
+                <label for="id_image" class="form-label">Remplacer l'image (optionnel)</label>
+                {{ form.image }}
+                <small class="text-muted d-block mt-1">
+                    Formats acceptés: JPG, PNG, GIF, WEBP - Taille max: 5 MB
+                </small>
+            </div>
+
+            <div class="d-flex gap-2 justify-content-end">
+                <a href="{% url 'profile' %}" class="btn btn-secondary">Annuler</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-2"></i>Enregistrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let selectedTags = new Set();
+
+// Initialiser avec les tags existants
+{% for tag in image.tags.all %}
+    selectedTags.add({{ tag.id }});
+{% endfor %}
+
+const tagSearch = document.getElementById('tagSearch');
+const tagResults = document.getElementById('tagSearchResults');
+const tagsInput = document.getElementById('tagsInput');
+
+let searchTimeout;
+
+tagSearch.addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    const query = this.value.trim();
+    
+    if (query.length < 2) {
+        tagResults.style.display = 'none';
+        return;
+    }
+    
+    searchTimeout = setTimeout(() => {
+        fetch(`/get-tags/?search=${encodeURIComponent(query)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.tags.length > 0) {
+                    tagResults.innerHTML = data.tags.map(tag => `
+                        <div class="tag-result-item" onclick="addTag(${tag.id}, '${tag.name}')">
+                            ${tag.name} <small class="text-muted">(${tag.category})</small>
+                        </div>
+                    `).join('');
+                    tagResults.style.display = 'block';
+                } else {
+                    tagResults.style.display = 'none';
+                }
+            });
+    }, 300);
+});
+
+function addTag(id, name) {
+    if (selectedTags.has(id)) return;
+    
+    selectedTags.add(id);
+    
+    const tagElement = document.createElement('span');
+    tagElement.className = 'tag-item';
+    tagElement.dataset.tagId = id;
+    tagElement.innerHTML = `
+        ${name}
+        <span class="tag-remove" onclick="removeTag(${id})">&times;</span>
+    `;
+    
+    document.getElementById('selectedTags').appendChild(tagElement);
+    updateTagsInput();
+    
+    tagSearch.value = '';
+    tagResults.style.display = 'none';
+}
+
+function removeTag(id) {
+    selectedTags.delete(id);
+    document.querySelector(`[data-tag-id="${id}"]`).remove();
+    updateTagsInput();
+}
+
+function updateTagsInput() {
+    tagsInput.value = Array.from(selectedTags).join(',');
+}
+
+// Fermer les résultats si on clique ailleurs
+document.addEventListener('click', function(e) {
+    if (!tagSearch.contains(e.target) && !tagResults.contains(e.target)) {
+        tagResults.style.display = 'none';
+    }
+});
+</script>
+{% endblock %}

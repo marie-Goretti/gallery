@@ -2,16 +2,18 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import logout, authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Image, Category
-from .forms import SignUpForm
+from django.contrib.auth.models import User
+from .forms import SignUpForm, ImageUploadForm
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
-from .forms import ImageUploadForm
 from django.http import JsonResponse
 from .models import Image, Category, Tag
 from django.db.models import Count, Q
 from .models import Image, Category, Tag, ImageLike, ImageView, Comment
 from django.views.decorators.http import require_POST
+from datetime import datetime, timedelta
+from django.utils import timezone
+
 
 def index(request):
     q = request.GET.get("q")
@@ -257,4 +259,162 @@ def delete_comment(request, comment_id):
     return JsonResponse({
         'success': True,
         'comments_count': comments_count
+    })
+
+
+@login_required
+def profile_view(request):
+    """Page de profil utilisateur avec statistiques"""
+    user = request.user
+    profile = user.profile
+    
+    # Images de l'utilisateur
+    user_images = Image.objects.filter(author=user).order_by('-created_at')
+    
+    # Statistiques globales
+    total_images = user_images.count()
+    total_views = sum(img.get_views_count() for img in user_images)
+    total_likes = sum(img.get_likes_count() for img in user_images)
+    total_comments = sum(img.get_comments_count() for img in user_images)
+    
+    # Statistiques des 30 derniers jours
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    
+    recent_images = user_images.filter(created_at__gte=thirty_days_ago)
+    recent_images_count = recent_images.count()
+    
+    # Calcul des likes des 30 derniers jours
+    recent_likes = ImageLike.objects.filter(
+        image__author=user,
+        created_at__gte=thirty_days_ago
+    ).count()
+    
+    # Calcul des commentaires des 30 derniers jours
+    recent_comments = Comment.objects.filter(
+        image__author=user,
+        created_at__gte=thirty_days_ago
+    ).count()
+    
+    # Calcul des vues des 30 derniers jours
+    recent_views = ImageView.objects.filter(
+        image__author=user,
+        viewed_at__gte=thirty_days_ago
+    ).count()
+    
+    # Calcul des followers (nombre de personnes qui ont liké vos images)
+    unique_likers = ImageLike.objects.filter(
+        image__author=user
+    ).values('user').distinct().count()
+    
+    # Calcul de la croissance (simulée pour l'exemple)
+    # Vous pouvez améliorer cela en comparant avec les 30 jours précédents
+    images_growth = 0
+    if total_images > 0:
+        old_images = user_images.filter(created_at__lt=thirty_days_ago).count()
+        if old_images > 0:
+            images_growth = ((recent_images_count - old_images) / old_images) * 100
+    
+    likes_growth = 0
+    if total_likes > 0:
+        old_likes = ImageLike.objects.filter(
+            image__author=user,
+            created_at__lt=thirty_days_ago
+        ).count()
+        if old_likes > 0:
+            likes_growth = ((recent_likes - old_likes) / old_likes) * 100
+    
+    context = {
+        'profile': profile,
+        'user_images': user_images,
+        'total_images': total_images,
+        'total_views': total_views,
+        'total_likes': total_likes,
+        'total_comments': total_comments,
+        'recent_images_count': recent_images_count,
+        'recent_likes': recent_likes,
+        'recent_comments': recent_comments,
+        'recent_views': recent_views,
+        'unique_likers': unique_likers,
+        'images_growth': round(images_growth, 1),
+        'likes_growth': round(likes_growth, 1),
+    }
+    
+    return render(request, 'gallery/profile.html', context)
+
+
+@login_required
+def edit_profile(request):
+    """Éditer le profil utilisateur"""
+    if request.method == 'POST':
+        user = request.user
+        profile = user.profile
+        
+        # Mise à jour du nom d'utilisateur
+        new_username = request.POST.get('username', '').strip()
+        if new_username and new_username != user.username:
+            # Vérifier si le nom d'utilisateur est déjà pris
+            if User.objects.filter(username=new_username).exclude(id=user.id).exists():
+                messages.error(request, 'Ce nom d\'utilisateur est déjà pris.')
+                return redirect('profile')
+            user.username = new_username
+        
+        # Mise à jour de l'email
+        user.email = request.POST.get('email', '')
+        profile.bio = request.POST.get('bio', '')
+        
+        # Gestion de l'avatar
+        if 'avatar' in request.FILES:
+            profile.avatar = request.FILES['avatar']
+        
+        user.save()
+        profile.save()
+        
+        messages.success(request, 'Profil mis à jour avec succès !')
+        return redirect('profile')
+    
+    return redirect('profile')
+
+
+@login_required
+def delete_image(request, slug):
+    """Supprimer une image"""
+    image = get_object_or_404(Image, slug=slug, author=request.user)
+    
+    if request.method == 'POST':
+        image.delete()
+        messages.success(request, 'Image supprimée avec succès !')
+        return redirect('profile')
+    
+    return render(request, 'gallery/confirm_delete.html', {'image': image})
+
+
+@login_required
+def edit_image(request, slug):
+    """Modifier une image"""
+    image = get_object_or_404(Image, slug=slug, author=request.user)
+    
+    if request.method == 'POST':
+        form = ImageUploadForm(request.POST, request.FILES, instance=image)
+        if form.is_valid():
+            img = form.save()
+            
+            # Mise à jour des tags
+            tags_ids = request.POST.get('tags_ids', '')
+            if tags_ids:
+                tag_ids_list = [int(tid) for tid in tags_ids.split(',') if tid.strip().isdigit()]
+                tags = Tag.objects.filter(id__in=tag_ids_list)
+                img.tags.set(tags)
+                
+                if tags.exists():
+                    img.category = tags.first().category
+                    img.save(update_fields=['category'])
+            
+            messages.success(request, 'Image modifiée avec succès !')
+            return redirect('profile')
+    else:
+        form = ImageUploadForm(instance=image)
+    
+    return render(request, 'gallery/edit_image.html', {
+        'form': form, 
+        'image': image
     })
