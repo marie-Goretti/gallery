@@ -40,6 +40,10 @@
         box-shadow: 0 0 0 3px rgba(228, 91, 17, 0.1);
     }
 
+    .tag-input-container {
+        position: relative;
+    }
+
     .tag-selection {
         display: flex;
         flex-wrap: wrap;
@@ -48,6 +52,7 @@
         background: #f7fafc;
         border-radius: 10px;
         min-height: 60px;
+        margin-top: 10px;
     }
 
     .tag-item {
@@ -59,29 +64,96 @@
         align-items: center;
         gap: 8px;
         font-size: 0.9rem;
+        animation: tagAppear 0.3s ease;
+    }
+
+    @keyframes tagAppear {
+        from {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
     }
 
     .tag-remove {
         cursor: pointer;
         font-weight: bold;
-    }
-
-    .tag-search-results {
-        max-height: 300px;
-        overflow-y: auto;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        margin-top: 10px;
-    }
-
-    .tag-result-item {
-        padding: 10px 15px;
-        cursor: pointer;
+        width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
         transition: background 0.2s;
     }
 
+    .tag-remove:hover {
+        background: rgba(255, 255, 255, 0.5);
+    }
+
+    .tag-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        max-height: 300px;
+        overflow-y: auto;
+        background: white;
+        border: 2px solid #E45B11;
+        border-radius: 10px;
+        margin-top: 5px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+    }
+
+    .tag-result-item {
+        padding: 12px 15px;
+        cursor: pointer;
+        transition: background 0.2s;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .tag-result-item:last-child {
+        border-bottom: none;
+    }
+
     .tag-result-item:hover {
-        background: #f7fafc;
+        background: #fff5f0;
+    }
+
+    .tag-result-item.selected {
+        background: #ffe8dc;
+        font-weight: 600;
+    }
+
+    .tag-category-label {
+        display: inline-block;
+        padding: 2px 8px;
+        background: #e2e8f0;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        color: #718096;
+        margin-left: 8px;
+    }
+
+    .no-results {
+        padding: 20px;
+        text-align: center;
+        color: #718096;
+    }
+
+    .btn-primary {
+        background-color: #E45B11;
+        border-color: #E45B11;
+    }
+
+    .btn-primary:hover {
+        background-color: #c74d0e;
+        border-color: #c74d0e;
     }
 </style>
 {% endblock %}
@@ -107,12 +179,38 @@
             </div>
 
             <div class="mb-3">
+                <label for="id_category" class="form-label">Catégorie</label>
+                <select class="form-select" id="id_category" name="category">
+                    <option value="">-- Sélectionner une catégorie --</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {% if image.category and image.category.id == category.id %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                {% if image.category %}
+                    <small class="text-muted d-block mt-1">
+                        <i class="bi bi-info-circle"></i> Catégorie actuelle : <strong>{{ image.category.name }}</strong>
+                    </small>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
                 <label class="form-label">Tags</label>
-                <input type="text" class="form-control" id="tagSearch" 
-                       placeholder="Rechercher des tags...">
-                <div id="tagSearchResults" class="tag-search-results" style="display: none;"></div>
+                {% if image.tags.all %}
+                    <small class="text-muted d-block mb-2">
+                        <i class="bi bi-info-circle"></i> Tags actuels : 
+                        <strong>{% for tag in image.tags.all %}{{ tag.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</strong>
+                    </small>
+                {% endif %}
+                <div class="tag-input-container">
+                    <input type="text" class="form-control" id="tagSearch" 
+                           placeholder="Cliquez pour voir tous les tags ou tapez pour rechercher..."
+                           autocomplete="off">
+                    <div id="tagDropdown" class="tag-dropdown" style="display: none;"></div>
+                </div>
                 
-                <div class="tag-selection mt-3" id="selectedTags">
+                <div class="tag-selection" id="selectedTags">
                     {% for tag in image.tags.all %}
                         <span class="tag-item" data-tag-id="{{ tag.id }}">
                             {{ tag.name }}
@@ -120,7 +218,7 @@
                         </span>
                     {% endfor %}
                 </div>
-                <input type="hidden" name="tags_ids" id="tagsInput" value="{{ image.tags.all|join:',' }}">
+                <input type="hidden" name="tags_ids" id="tagsInput" value="{% for tag in image.tags.all %}{{ tag.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
             </div>
 
             <div class="mb-4">
@@ -143,6 +241,37 @@
 
 <script>
 let selectedTags = new Set();
+let allTags = [];
+let tagsLoaded = false;
+
+const categorySelect = document.getElementById('id_category');
+
+categorySelect.addEventListener('change', function () {
+    const selectedCategory = this.value;
+
+    // On efface le dropdown pendant le chargement
+    tagDropdown.innerHTML = '<div class="no-results"><i class="bi bi-hourglass-split"></i><br>Chargement...</div>';
+    tagDropdown.style.display = 'block';
+
+    if (!selectedCategory) {
+        // Si aucune catégorie n’est sélectionnée : on recharge tous les tags
+        loadAllTags().then(tags => {
+            displayTags(tags);
+        });
+        return;
+    }
+
+    fetch('/get-tags-by-category/?category_id=' + selectedCategory)
+        .then(res => res.json())
+        .then(data => {
+            allTags = data.tags; 
+            displayTags(allTags);
+        })
+        .catch(() => {
+            tagDropdown.innerHTML = '<div class="no-results">Erreur de chargement</div>';
+        });
+});
+
 
 // Initialiser avec les tags existants
 {% for tag in image.tags.all %}
@@ -150,40 +279,126 @@ let selectedTags = new Set();
 {% endfor %}
 
 const tagSearch = document.getElementById('tagSearch');
-const tagResults = document.getElementById('tagSearchResults');
+const tagDropdown = document.getElementById('tagDropdown');
 const tagsInput = document.getElementById('tagsInput');
 
 let searchTimeout;
 
+// Charger tous les tags au chargement de la page
+function loadAllTags() {
+    return fetch('/get-tags/?search=')
+        .then(res => res.json())
+        .then(data => {
+            allTags = data.tags;
+            tagsLoaded = true;
+            console.log('Tags chargés:', allTags.length);
+            return allTags;
+        })
+        .catch(err => {
+            console.error('Erreur chargement tags:', err);
+            return [];
+        });
+}
+
+// Charger les tags dès le chargement de la page
+loadAllTags();
+
+// Afficher la liste dès le focus sur le champ
+tagSearch.addEventListener('focus', function() {
+    if (!tagsLoaded) {
+        tagDropdown.innerHTML = '<div class="no-results"><i class="bi bi-hourglass-split"></i><br>Chargement des tags...</div>';
+        tagDropdown.style.display = 'block';
+        loadAllTags().then(tags => {
+            if (tagSearch.value.trim() === '') {
+                displayTags(tags);
+            }
+        });
+    } else {
+        if (tagSearch.value.trim() === '') {
+            displayTags(allTags);
+        }
+    }
+});
+
+// Afficher la liste complète au clic
+tagSearch.addEventListener('click', function() {
+    if (!tagsLoaded) {
+        tagDropdown.innerHTML = '<div class="no-results"><i class="bi bi-hourglass-split"></i><br>Chargement des tags...</div>';
+        tagDropdown.style.display = 'block';
+        loadAllTags().then(tags => {
+            displayTags(tags);
+        });
+    } else {
+        displayTags(allTags);
+    }
+});
+
+// Filtrer au fur et à mesure de la saisie
 tagSearch.addEventListener('input', function() {
     clearTimeout(searchTimeout);
-    const query = this.value.trim();
+    const query = this.value.trim().toLowerCase();
     
-    if (query.length < 2) {
-        tagResults.style.display = 'none';
+    if (!tagsLoaded) {
+        tagDropdown.innerHTML = '<div class="no-results"><i class="bi bi-hourglass-split"></i><br>Chargement des tags...</div>';
+        tagDropdown.style.display = 'block';
+        loadAllTags().then(() => {
+            if (query.length === 0) {
+                displayTags(allTags);
+            } else {
+                const filteredTags = allTags.filter(tag => 
+                    tag.name.toLowerCase().includes(query) || 
+                    tag.category.toLowerCase().includes(query)
+                );
+                displayTags(filteredTags);
+            }
+        });
+        return;
+    }
+    
+    if (query.length === 0) {
+        displayTags(allTags);
         return;
     }
     
     searchTimeout = setTimeout(() => {
-        fetch(`/get-tags/?search=${encodeURIComponent(query)}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.tags.length > 0) {
-                    tagResults.innerHTML = data.tags.map(tag => `
-                        <div class="tag-result-item" onclick="addTag(${tag.id}, '${tag.name}')">
-                            ${tag.name} <small class="text-muted">(${tag.category})</small>
-                        </div>
-                    `).join('');
-                    tagResults.style.display = 'block';
-                } else {
-                    tagResults.style.display = 'none';
-                }
-            });
-    }, 300);
+        const filteredTags = allTags.filter(tag => 
+            tag.name.toLowerCase().includes(query) || 
+            tag.category.toLowerCase().includes(query)
+        );
+        displayTags(filteredTags);
+    }, 200);
 });
 
+function displayTags(tags) {
+    if (!tags || tags.length === 0) {
+        tagDropdown.innerHTML = '<div class="no-results"><i class="bi bi-search"></i><br>Aucun tag trouvé</div>';
+        tagDropdown.style.display = 'block';
+        return;
+    }
+
+    tagDropdown.innerHTML = tags.map(tag => `
+        <div class="tag-result-item ${selectedTags.has(tag.id) ? 'selected' : ''}" 
+             onclick="addTag(${tag.id}, '${escapeHtml(tag.name)}')">
+            ${escapeHtml(tag.name)}
+            <span class="tag-category-label">${escapeHtml(tag.category)}</span>
+            ${selectedTags.has(tag.id) ? '<i class="bi bi-check-circle-fill" style="color: #E45B11; float: right;"></i>' : ''}
+        </div>
+    `).join('');
+    tagDropdown.style.display = 'block';
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 function addTag(id, name) {
-    if (selectedTags.has(id)) return;
+    if (selectedTags.has(id)) {
+        // Si déjà sélectionné, on le retire
+        removeTag(id);
+        return;
+    }
     
     selectedTags.add(id);
     
@@ -191,32 +406,62 @@ function addTag(id, name) {
     tagElement.className = 'tag-item';
     tagElement.dataset.tagId = id;
     tagElement.innerHTML = `
-        ${name}
+        ${escapeHtml(name)}
         <span class="tag-remove" onclick="removeTag(${id})">&times;</span>
     `;
     
     document.getElementById('selectedTags').appendChild(tagElement);
     updateTagsInput();
     
-    tagSearch.value = '';
-    tagResults.style.display = 'none';
+    // Mettre à jour l'affichage
+    const query = tagSearch.value.trim().toLowerCase();
+    if (query === '') {
+        displayTags(allTags);
+    } else {
+        displayTags(allTags.filter(tag => 
+            tag.name.toLowerCase().includes(query) || 
+            tag.category.toLowerCase().includes(query)
+        ));
+    }
 }
 
 function removeTag(id) {
     selectedTags.delete(id);
-    document.querySelector(`[data-tag-id="${id}"]`).remove();
+    const element = document.querySelector(`[data-tag-id="${id}"]`);
+    if (element) {
+        element.style.animation = 'tagAppear 0.3s ease reverse';
+        setTimeout(() => element.remove(), 300);
+    }
     updateTagsInput();
+    
+    // Mettre à jour l'affichage si le dropdown est ouvert
+    if (tagDropdown.style.display === 'block') {
+        const query = tagSearch.value.trim().toLowerCase();
+        if (query === '') {
+            displayTags(allTags);
+        } else {
+            displayTags(allTags.filter(tag => 
+                tag.name.toLowerCase().includes(query) || 
+                tag.category.toLowerCase().includes(query)
+            ));
+        }
+    }
 }
 
 function updateTagsInput() {
     tagsInput.value = Array.from(selectedTags).join(',');
 }
 
-// Fermer les résultats si on clique ailleurs
+// Fermer le dropdown si on clique ailleurs
 document.addEventListener('click', function(e) {
-    if (!tagSearch.contains(e.target) && !tagResults.contains(e.target)) {
-        tagResults.style.display = 'none';
+    if (!tagSearch.contains(e.target) && !tagDropdown.contains(e.target)) {
+        tagDropdown.style.display = 'none';
     }
+});
+
+// Empêcher la fermeture lors du clic sur un tag dans le dropdown
+tagDropdown.addEventListener('click', function(e) {
+    e.stopPropagation();
 });
 </script>
 {% endblock %}

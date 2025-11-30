@@ -19,4 +19,6 @@ urlpatterns = [
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('image/<slug:slug>/edit/', views.edit_image, name='edit_image'),
     path('image/<slug:slug>/delete/', views.delete_image, name='delete_image'),
+    path("get-tags/", views.get_all_tags, name="get_all_tags"),
+
 ]

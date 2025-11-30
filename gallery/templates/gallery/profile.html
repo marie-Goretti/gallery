@@ -6,9 +6,9 @@
 {% block extra_css %}
 <style>
     .profile-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #E45B11 0%, #ffb703 100%);
         padding: 60px 0;
-        margin-top: -30px;
+        margin-top: 10px;
         margin-bottom: 40px;
     }
 
@@ -113,11 +113,19 @@
         padding: 12px 25px;
         font-weight: 600;
         transition: all 0.3s ease;
+        color: #2d3748;
+        background: transparent;
     }
 
     .nav-pills .nav-link.active {
-        background-color: #E45B11;
-        color: white;
+        background-color: transparent;
+        color: #E45B11;
+        border-radius: 0;
+    }
+
+    .nav-pills .nav-link:hover {
+        color: #E45B11;
+        background: rgba(228, 91, 17, 0.05);
     }
 
     .image-card {
@@ -241,7 +249,7 @@
                     {% if profile.bio %}
                         <p class="mb-3">{{ profile.bio }}</p>
                     {% endif %}
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editProfileModal" style="background-color: #E45B11; border-color: #E45B11;">
                         <i class="bi bi-pencil"></i> Éditer le profil
                     </button>
                 </div>
@@ -260,7 +268,7 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="images-tab" data-bs-toggle="pill" 
                     data-bs-target="#images" type="button" role="tab">
-                <i class="bi bi-images me-2"></i>Mes Images
+                <i class="bi bi-image-alt me-2"></i>Mes Images
             </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -311,7 +319,7 @@
                     <i class="bi bi-image"></i>
                     <h3>Aucune image publiée</h3>
                     <p class="text-muted">Commencez à partager vos créations dès maintenant !</p>
-                    <a href="{% url 'upload_image' %}" class="btn btn-primary btn-lg mt-3">
+                    <a href="{% url 'upload_image' %}" class="btn btn-primary btn-lg mt-3" style="background-color: #E45B11; border-color: #E45B11;">
                         <i class="bi bi-cloud-upload me-2"></i>Publier une image
                     </a>
                 </div>
@@ -327,7 +335,7 @@
                 <div class="col-md-3 col-sm-6">
                     <div class="stat-box">
                         <div class="stat-icon" style="background: rgba(228, 91, 17, 0.1); color: #E45B11;">
-                            <i class="bi bi-image"></i>
+                            <i class="bi bi-image-alt"></i>
                         </div>
                         <div class="stat-number">{{ recent_images_count }}</div>
                         <div class="stat-label">Images publiées</div>
@@ -343,8 +351,8 @@
                 <!-- Likes reçus -->
                 <div class="col-md-3 col-sm-6">
                     <div class="stat-box">
-                        <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
-                            <i class="bi bi-heart-fill"></i>
+                        <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: #E45B11;">
+                            <i class="bi bi-emoji-heart-eyes"></i>
                         </div>
                         <div class="stat-number">{{ recent_likes|default:0 }}</div>
                         <div class="stat-label">Likes reçus</div>
@@ -360,8 +368,8 @@
                 <!-- Commentaires -->
                 <div class="col-md-3 col-sm-6">
                     <div class="stat-box">
-                        <div class="stat-icon" style="background: rgba(251, 191, 36, 0.1); color: #fbbf24;">
-                            <i class="bi bi-chat-fill"></i>
+                        <div class="stat-icon" style="background: rgba(251, 191, 36, 0.1); color: #E45B11;">
+                            <i class="bi bi-chat-dots-fill"></i>
                         </div>
                         <div class="stat-number">{{ recent_comments|default:0 }}</div>
                         <div class="stat-label">Commentaires</div>
@@ -371,7 +379,7 @@
                 <!-- Vues de profil -->
                 <div class="col-md-3 col-sm-6">
                     <div class="stat-box">
-                        <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+                        <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: #E45B11;">
                             <i class="bi bi-eye-fill"></i>
                         </div>
                         <div class="stat-number">{{ recent_views|default:0 }}</div>
@@ -413,15 +421,7 @@
                     </div>
                 </div>
 
-                <div class="col-md-3 col-sm-6">
-                    <div class="stat-box">
-                        <div class="stat-icon" style="background: rgba(20, 184, 166, 0.1); color: #14b8a6;">
-                            <i class="bi bi-people-fill"></i>
-                        </div>
-                        <div class="stat-number">{{ unique_likers }}</div>
-                        <div class="stat-label">Followers</div>
-                    </div>
-                </div>
+                
             </div>
         </div>
     </div>
@@ -499,7 +499,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" style="background-color: #E45B11; border-color: #E45B11;">
                         <i class="bi bi-check-lg me-2"></i>Enregistrer
                     </button>
                 </div>

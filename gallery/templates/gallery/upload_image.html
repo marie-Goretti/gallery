@@ -31,7 +31,20 @@
                             <div class="text-danger small">{{ form.description.errors }}</div>
                         {% endif %}
                     </div>
-                    
+
+                    <!-- Champ Catégorie -->
+                    <div class="mb-3">
+                        <label for="category-select" class="form-label">Catégorie</label>
+                        <select name="category" id="category-select" class="form-select" required>
+                            <option value="">-- Choisir une catégorie --</option>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Choisissez une catégorie pour filtrer les tags.</div>
+                    </div>
+
+
                     <!-- Champ Tags -->
                     <div class="mb-3">
                         <label for="tags-input" class="form-label">Tags</label>
@@ -93,6 +106,17 @@
     const tagsDropdown = document.getElementById('tags-dropdown');
     const selectedTagsContainer = document.getElementById('selected-tags');
     const tagsIdsInput = document.getElementById('tags-ids');
+
+    const categorySelect = document.getElementById('category-select');
+
+    categorySelect.addEventListener('change', function() {
+        selectedTags = [];
+        updateSelectedTagsDisplay();
+
+        const search = tagsInput.value.trim();
+        searchTags(search); // recharge immédiatement la liste
+    });
+
     
     // Charger les tags populaires au focus
     tagsInput.addEventListener('focus', function() {
@@ -112,14 +136,17 @@
         }, 200);
     });
     
-    // Fonction pour rechercher les tags
     function searchTags(search) {
+        const categoryId = document.getElementById('category-select').value;
         let url = `{% url 'get_tags_by_category' %}`;
-        
-        if (search) {
-            url += `?search=${encodeURIComponent(search)}`;
-        }
-        
+
+        const params = [];
+
+        if (categoryId) params.push(`category=${categoryId}`);
+        if (search) params.push(`search=${encodeURIComponent(search)}`);
+
+        if (params.length > 0) url += "?" + params.join("&");
+
         fetch(url)
             .then(response => response.json())
             .then(data => {
@@ -127,10 +154,17 @@
             })
             .catch(error => {
                 console.error('Erreur lors du chargement des tags:', error);
-                tagsDropdown.innerHTML = '<li class="list-group-item text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Erreur de chargement</li>';
-                tagsDropdown.style.display = 'block';
             });
     }
+
+    document.getElementById('category-select').addEventListener('change', function() {
+        selectedTags = [];
+        updateSelectedTagsDisplay();
+        tagsInput.value = '';
+    });
+
+
+
     
     // Fermer la liste déroulante quand on clique ailleurs
     document.addEventListener('click', function(e) {

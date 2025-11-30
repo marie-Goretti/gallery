@@ -72,59 +72,77 @@ def category_view(request, slug):
 
 @login_required
 def get_tags_by_category(request):
-    """API pour récupérer les tags avec recherche globale"""
-    search = request.GET.get('search', '')
-    category_id = request.GET.get('category_id')
-    
-    tags = Tag.objects.select_related('category')
-    
-    # Filtrer par catégorie si spécifiée
+    category_id = request.GET.get("category")
+    search = request.GET.get("search", "")
+
+    tags = Tag.objects.all()
+
     if category_id:
         tags = tags.filter(category_id=category_id)
     
-    # Filtrer par recherche
     if search:
         tags = tags.filter(name__icontains=search)
-    
-    # Limiter à 20 résultats
-    tags = tags[:20]
-    
-    tags_list = [{
-        'id': tag.id, 
-        'name': tag.name,
-        'category': tag.category.name
-    } for tag in tags]
-    
-    return JsonResponse({'tags': tags_list})
+
+    tags = tags.order_by("name")
+
+    return JsonResponse({
+        "tags": [{"id": t.id, "name": t.name} for t in tags]
+    })
+
+
+def get_all_tags(request):
+    search = request.GET.get("search", "")
+
+    tags = Tag.objects.all()
+
+    if search:
+        tags = tags.filter(name__icontains=search)
+
+    data = [
+        {
+            "id": tag.id,
+            "name": tag.name,
+            "category": tag.category.name if tag.category else ""
+        }
+        for tag in tags
+    ]
+
+    return JsonResponse({"tags": data})
 
 
 @login_required
 def upload_image(request):
+    categories = Category.objects.all()
+
     if request.method == "POST":
         form = ImageUploadForm(request.POST, request.FILES)
         if form.is_valid():
-            img = form.save(commit=False)
-            img.author = request.user
-            img.save()
-            
-            # Récupérer les tags sélectionnés
-            tags_ids = request.POST.get('tags_ids', '')
+            image = form.save(commit=False)
+            image.author = request.user
+
+            # Récupération de la catégorie choisie
+            category_id = request.POST.get("category")
+            if category_id:
+                image.category = Category.objects.get(id=category_id)
+
+            image.save()
+
+            # Récupération des tags
+            tags_ids = request.POST.get("tags_ids", "")
             if tags_ids:
-                tag_ids_list = [int(tid) for tid in tags_ids.split(',') if tid.strip().isdigit()]
-                tags = Tag.objects.filter(id__in=tag_ids_list)
-                img.tags.set(tags)
-                
-                # Assigner automatiquement la catégorie basée sur le premier tag
-                if tags.exists():
-                    img.category = tags.first().category
-                    img.save(update_fields=['category'])
-            
-            messages.success(request, 'Image publiée avec succès !')
-            return redirect('index')
+                tag_ids_list = [int(t) for t in tags_ids.split(",") if t.isdigit()]
+                image.tags.set(tag_ids_list)
+
+            return redirect("index")
+
     else:
         form = ImageUploadForm()
 
-    return render(request, "gallery/upload_image.html", {"form": form})
+    return render(request, "gallery/upload_image.html", {
+        "form": form,
+        "categories": categories,
+    })
+
 
 
 @login_required
@@ -392,11 +410,19 @@ def delete_image(request, slug):
 def edit_image(request, slug):
     """Modifier une image"""
     image = get_object_or_404(Image, slug=slug, author=request.user)
+    categories = Category.objects.all()
     
     if request.method == 'POST':
         form = ImageUploadForm(request.POST, request.FILES, instance=image)
         if form.is_valid():
-            img = form.save()
+            img = form.save(commit=False)
+            
+            # Mise à jour de la catégorie
+            category_id = request.POST.get('category')
+            if category_id:
+                img.category = Category.objects.get(id=category_id)
+            
+            img.save()
             
             # Mise à jour des tags
             tags_ids = request.POST.get('tags_ids', '')
@@ -404,10 +430,8 @@ def edit_image(request, slug):
                 tag_ids_list = [int(tid) for tid in tags_ids.split(',') if tid.strip().isdigit()]
                 tags = Tag.objects.filter(id__in=tag_ids_list)
                 img.tags.set(tags)
-                
-                if tags.exists():
-                    img.category = tags.first().category
-                    img.save(update_fields=['category'])
+            else:
+                img.tags.clear()
             
             messages.success(request, 'Image modifiée avec succès !')
             return redirect('profile')
@@ -416,5 +440,6 @@ def edit_image(request, slug):
     
     return render(request, 'gallery/edit_image.html', {
         'form': form, 
-        'image': image
+        'image': image,
+        'categories': categories
     })
