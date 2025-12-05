@@ -1,6 +1,17 @@
 {% extends 'gallery/base.html' %}
 
-{% block title %}Accueil{% endblock %}
+{% block title %}Accueil | MyGallery - Découvrez et partagez des images{% endblock %}
+
+{% block extra_meta %}
+    <meta name="description" content="MyGallery : découvrez, partagez et explorez des milliers d'images extraordinaires. Trouvez des photos par catégorie, auteur ou mots-clés.">
+    <link rel="canonical" href="{{ request.build_absolute_uri }}">
+    <meta property="og:title" content="MyGallery - Accueil">
+    <meta property="og:description" content="Explorez des milliers d'images partagées par la communauté.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:image" content="https://i.pinimg.com/736x/63/43/82/6343822839ead2ec6288928dfd902e58.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -271,11 +282,11 @@
         </p>
         
         <!-- Barre de recherche -->
-        <form method="GET" action="{% url 'index' %}" class="hero-search">
+        <form method="GET" action="{% url 'index' %}" class="hero-search" aria-label="Recherche d'images">
             <div class="input-group input-group-lg">
-                <input type="text" name="q" class="form-control" 
-                       placeholder="Rechercher par image, catégorie ou auteur..."
-                       value="{{ request.GET.q }}">
+                <input type="text" name="q" class="form-control"
+                placeholder="Rechercher par image, catégorie ou auteur..."
+                value="{{ request.GET.q }}" aria-label="Champ de recherche">
                 <button class="btn" type="submit" style="background-color: #E45B11; border-color: #E45B11; color: white;">
                     <i class="bi bi-search"></i> Rechercher
                 </button>
@@ -287,59 +298,55 @@
 <!-- Filtre par catégorie -->
 <div class="container">
     <div class="mb-5 text-center">
-        <div class="btn-group flex-wrap" role="group">
-            <a href="{% url 'index' %}" 
-               class="btn {% if not current_category %}btn-primary{% else %}btn-outline-primary{% endif %}"
-               style="{% if not current_category %}background-color: #E45B11; border-color: #E45B11;{% else %}border-color: #E45B11; color: #E45B11;{% endif %}">
-                <i class="bi bi-grid"></i> Tout
-            </a>
-            {% for category in categories %}
-            <a href="{% url 'category' category.slug %}" 
-               class="btn {% if current_category == category.slug %}btn-primary{% else %}btn-outline-primary{% endif %}"
-               style="{% if current_category == category.slug %}background-color: #E45B11; border-color: #E45B11;{% else %}border-color: #E45B11; color: #E45B11;{% endif %}">
+        <a href="{% url 'index' %}"
+            class="btn {% if not current_category %}btn-primary{% else %}btn-outline-primary{% endif %}"
+            style="{% if not current_category %}background-color: #E45B11; border-color: #E45B11;{% else %}border-color: #E45B11; color: #E45B11;{% endif %}">
+            <i class="bi bi-grid"></i> Tout
+        </a>
+        {% for category in categories %}
+            <a href="{% url 'category' category.slug %}"
+                class="btn {% if current_category == category.slug %}btn-primary{% else %}btn-outline-primary{% endif %}"
+                style="{% if current_category == category.slug %}background-color: #E45B11; border-color: #E45B11;{% else %}border-color: #E45B11; color: #E45B11;{% endif %}">
                 <i class="bi bi-tag"></i> {{ category.name }}
             </a>
-            {% endfor %}
-        </div>
+        {% endfor %}
     </div>
+</div>
 
     <!-- Galerie d'images style Masonry -->
     {% if images %}
     <div class="masonry-container">
         {% for image in images %}
-        <div class="masonry-item">
-            <a href="{% url 'image_detail' image.slug %}">
+            <div class="masonry-item" itemscope itemtype="https://schema.org/ImageObject">            
+                <a href="{% url 'image_detail' image.slug %}" itemprop="url">
                 <img src="{{ image.image.url }}" 
-                     alt="{{ image.title }}" 
-                     loading="lazy">
+                     alt="{{ image.title }} - Image partagée par {{ image.author.username }}"
+                    loading="lazy" itemprop="image">
+
                 <div class="item-overlay">
-                    <div class="item-title">{{ image.title }}</div>
+                    <div class="item-title" itemprop="name">{{ image.title }}</div>    
+
                     <div class="item-meta">
                         {% if image.author.profile.avatar %}
-                            <img src="{{ image.author.profile.avatar.url }}" 
-                                 alt="{{ image.author.username }}" 
-                                 class="author-avatar">
+                            <img src="{{ image.author.profile.avatar.url }}"
+                            alt="Avatar de {{ image.author.username }}"
+                            class="author-avatar">
                         {% else %}
-                            <div class="author-icon">
-                                <i class="bi bi-person-fill"></i>
-                            </div>
+                            <div class="author-icon"><i class="bi bi-person-fill"></i></div>
                         {% endif %}
-                        <span class="author-name">{{ image.author.username }}</span>
+                        <span class="author-name" itemprop="author">{{ image.author.username }}</span>
                     </div>
                     
                     <!-- Stats rapides -->
                     <div class="item-stats">
                         <div class="item-stat">
-                            <i class="bi bi-heart-fill"></i>
-                            <span>{{ image.get_likes_count }}</span>
+                            <i class="bi bi-heart-fill"></i><span>{{ image.get_likes_count }}</span>
                         </div>
                         <div class="item-stat">
-                            <i class="bi bi-eye-fill"></i>
-                            <span>{{ image.get_views_count }}</span>
+                            <i class="bi bi-eye-fill"></i><span>{{ image.get_views_count }}</span>
                         </div>
                         <div class="item-stat">
-                            <i class="bi bi-chat-dots-fill"></i>
-                            <span>{{ image.get_comments_count }}</span>
+                            <i class="bi bi-chat-dots-fill"></i><span>{{ image.get_comments_count }}</span>
                         </div>
                     </div>
                 </div>

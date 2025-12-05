@@ -71,6 +71,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'mygallery.wsgi.application'
 
+ALLOWED_HOSTS = ['*']
+
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
