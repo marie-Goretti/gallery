@@ -44,6 +44,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -79,14 +81,18 @@ ALLOWED_HOSTS = ['*']
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'gallery_db',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'localhost', 
-        'PORT': '3306', 
+        'ENGINE': 'django.db.backends.postgresql',
+        'HOST': 'dpg-d4su6kf5r7bs73bpa1j0-a.virginia-postgres.render.com',
+        'NAME': 'gallery_db_hy98',
+        'USER': 'gallery_db_hy98_user',
+        'PASSWORD': 'pPB1jzFt2QpDxlgwn8I4a1yRHE0u65bb',  
+        'PORT': '5432',
+        'OPTIONS': {
+            'sslmode': 'require'
+        }
     }
 }
+
 
 
 # Password validation
