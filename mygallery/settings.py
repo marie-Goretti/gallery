@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'gallery',
     'django_recaptcha'
+    'cloudinary',
+    'cloudinary_storage',
 ]
 
 MIDDLEWARE = [
@@ -150,3 +152,12 @@ LOGOUT_REDIRECT_URL = 'index'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': 'Root',
+    'API_KEY': '613174192426771',
+    'API_SECRET': 'EQGiDX5uovBNvoQtHMRCILeCIKU',
+}

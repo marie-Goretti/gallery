@@ -1,0 +1,63 @@
+/* 🎨 Couleur personnalisée MyGallery - #E45B11 (Orange) */
+
+/* Remplace toutes les couleurs Bootstrap primary par #E45B11 */
+
+/* Texte et icônes */
+.text-primary {
+    color: #E45B11 !important;
+}
+
+/* Boutons pleins */
+.btn-primary {
+    background-color: #E45B11 !important;
+    border-color: #E45B11 !important;
+    color: white !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+    background-color: #c74d0e !important;
+    border-color: #c74d0e !important;
+    color: white !important;
+}
+
+/* Boutons outline */
+.btn-outline-primary {
+    border-color: #E45B11 !important;
+    color: #E45B11 !important;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus,
+.btn-outline-primary:active {
+    background-color: #E45B11 !important;
+    border-color: #E45B11 !important;
+    color: white !important;
+}
+
+/* Badges */
+.badge.bg-primary,
+.badge.bg-secondary {
+    background-color: #E45B11 !important;
+}
+
+/* Liens */
+a {
+    color: #E45B11 !important;
+}
+
+a:hover {
+    color: #c74d0e !important;
+}
+
+/* Input focus */
+.form-control:focus {
+    border-color: #E45B11 !important;
+    box-shadow: 0 0 0 0.25rem rgba(228, 91, 17, 0.25) !important;
+}
+
+/* Navbar brand */
+.navbar-brand i {
+    color: #E45B11 !important;
+}
