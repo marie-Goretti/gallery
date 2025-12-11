@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'gallery',
-    'django_recaptcha'
+    'django_recaptcha',
     'cloudinary',
     'cloudinary_storage',
 ]
